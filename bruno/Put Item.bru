@@ -1,0 +1,17 @@
+meta {
+  name: Put Item
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/item/a
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "value": "c"
+  }
+}
