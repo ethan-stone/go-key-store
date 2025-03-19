@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -93,16 +94,23 @@ func main() {
 	mux.HandleFunc("POST /item/{key}", putHandler)
 	mux.HandleFunc("DELETE /item/{key}", deleteHandler)
 
+	args := os.Args
+
+	if len(args) != 2 {
+		panic("Must provide following command line arguments. go run . <port>")
+	}
+
 	// this is the actual server
 	s := &http.Server{
 		Handler:      mux, // This is the important line
-		Addr:         ":8080",
+		Addr:         ":" + args[1],
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
 	fmt.Println("Server running on port 8080")
 
-	s.ListenAndServe()
-
+	if err := s.ListenAndServe(); err != nil {
+		panic(err)
+	}
 }
