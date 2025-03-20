@@ -8,38 +8,14 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
+	"github.com/ethan-stone/go-key-store/internal/store"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
-type KeyValueStore struct {
-	sync.RWMutex
-	data map[string]string
-}
-
-func (store *KeyValueStore) get(key string) (string, bool) {
-	store.RLock()
-	defer store.RUnlock()
-	val, ok := store.data[key]
-	return val, ok
-}
-
-func (store *KeyValueStore) put(key string, val string) {
-	store.Lock()
-	defer store.Unlock()
-	store.data[key] = val
-}
-
-func (store *KeyValueStore) del(key string) {
-	store.Lock()
-	defer store.Unlock()
-	delete(store.data, key)
-}
 
 type KeyValueResponse struct {
 	Key   string `json:"key"`
@@ -50,14 +26,10 @@ type PutRequestBody struct {
 	Value string `json:"value"`
 }
 
-var store = &KeyValueStore{
-	data: make(map[string]string),
-}
-
 func getHandler(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 
-	val, ok := store.get(key)
+	val, ok := store.Store.Get(key)
 
 	if !ok {
 		w.WriteHeader(http.StatusNotFound)
@@ -81,7 +53,7 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	store.put(key, body.Value)
+	store.Store.Put(key, body.Value)
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -89,7 +61,7 @@ func putHandler(w http.ResponseWriter, r *http.Request) {
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	key := r.PathValue("key")
 
-	store.del(key)
+	store.Store.Del(key)
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -150,6 +122,7 @@ func main() {
 	byteResult, _ := io.ReadAll(configFile)
 
 	var clusterConfig ClusterConfig
+
 	json.Unmarshal(byteResult, &clusterConfig)
 
 	configFile.Close()
@@ -165,29 +138,23 @@ func main() {
 
 	for i := range otherNodeAddresses {
 		address := otherNodeAddresses[i]
-		conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+		client, err := rpc.NewRpcClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 		if err != nil {
 			log.Fatalf("Failed to make grpc client %v", err)
 		}
 
-		defer conn.Close()
-
-		client := rpc.NewStoreServiceClient(conn)
-
 		go func() {
 			for range time.NewTicker(time.Second * 5).C {
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 
-				r, err := client.Ping(ctx, &rpc.PingRequest{})
+				r, err := client.Ping()
 
 				if err != nil {
 					log.Fatalf("Could not ping server %v", err)
 				}
 
-				log.Printf("Ping successful ok = %t", r.GetOk())
-
-				cancel()
+				log.Printf("Ping successful ok = %t", r)
 			}
 		}()
 	}
