@@ -1,11 +1,15 @@
 package configuration
 
-import "github.com/google/uuid"
+import (
+	"encoding/json"
+	"io"
+	"os"
+
+	"github.com/google/uuid"
+)
 
 type ClusterConfig struct {
-	NodeID     string
-	HashSlots  []int                 // The range hash slots this node is the leader for. First element is the start of the range. Second element is the end of the range. The end of the range is non-inclusive.
-	OtherNodes map[string]NodeConfig // A map of node IDs to their configuration.
+	Addresses []string `json:"addresses"`
 }
 
 type NodeConfig struct {
@@ -14,4 +18,26 @@ type NodeConfig struct {
 
 func GenerateNodeID() string {
 	return uuid.New().String()
+}
+
+func LoadClusterConfigFromFile(path string) (*ClusterConfig, error) {
+	configFile, err := os.Open("cluster-config.json")
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer configFile.Close()
+
+	byteResult, _ := io.ReadAll(configFile)
+
+	var clusterConfig ClusterConfig
+
+	err = json.Unmarshal(byteResult, &clusterConfig)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &clusterConfig, nil
 }

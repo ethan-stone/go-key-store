@@ -1,8 +1,6 @@
 package main
 
 import (
-	"encoding/json"
-	"io"
 	"log"
 	"net"
 	"os"
@@ -15,19 +13,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type KeyValueResponse struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-type PutRequestBody struct {
-	Value string `json:"value"`
-}
-
-type ClusterConfig struct {
-	Addresses []string `json:"addresses"`
-}
-
 func main() {
 	log.Default().SetFlags(log.Ldate | log.Ltime | log.Lmsgprefix)
 	log.SetPrefix(configuration.GenerateNodeID() + " ")
@@ -39,30 +24,11 @@ func main() {
 		log.Fatalf("Must provide following command line arguments. go run . <http-port> <grpc-port>")
 	}
 
-	httpServer := http_server.NewHttpServer(":" + args[1])
-
-	go func() {
-
-		log.Printf("HTTP server running on port %s", args[1])
-
-		if err := httpServer.ListenAndServe(); err != nil {
-			log.Fatalf("failed to start http server %v", err)
-		}
-	}()
-
-	configFile, err := os.Open("cluster-config.json")
+	clusterConfig, err := configuration.LoadClusterConfigFromFile("cluster-config.json")
 
 	if err != nil {
-		log.Fatalf("Failed to open cluster config file %v", err)
+		log.Fatalf("Failed to load cluster config file %v", err)
 	}
-
-	byteResult, _ := io.ReadAll(configFile)
-
-	var clusterConfig ClusterConfig
-
-	json.Unmarshal(byteResult, &clusterConfig)
-
-	configFile.Close()
 
 	otherNodeAddresses := []string{}
 
@@ -93,6 +59,17 @@ func main() {
 			}
 		}()
 	}
+
+	httpServer := http_server.NewHttpServer(":" + args[1])
+
+	go func() {
+
+		log.Printf("HTTP server running on port %s", args[1])
+
+		if err := httpServer.ListenAndServe(); err != nil {
+			log.Fatalf("failed to start http server %v", err)
+		}
+	}()
 
 	list, err := net.Listen("tcp", ":"+args[2])
 
