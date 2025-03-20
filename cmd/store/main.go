@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -64,15 +63,6 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 	store.Store.Del(key)
 
 	w.WriteHeader(http.StatusOK)
-}
-
-type server struct {
-	rpc.UnimplementedStoreServiceServer
-}
-
-func (s *server) Ping(_ context.Context, req *rpc.PingRequest) (*rpc.PingResponse, error) {
-	log.Println("Ping request received.")
-	return &rpc.PingResponse{Ok: true}, nil
 }
 
 type ClusterConfig struct {
@@ -150,11 +140,9 @@ func main() {
 
 				r, err := client.Ping()
 
-				if err != nil {
+				if err != nil || !r {
 					log.Fatalf("Could not ping server %v", err)
 				}
-
-				log.Printf("Ping successful ok = %t", r)
 			}
 		}()
 	}
@@ -167,9 +155,7 @@ func main() {
 
 	log.Printf("GRPC server runnnig on port %s", args[2])
 
-	grpcServer := grpc.NewServer()
-
-	rpc.RegisterStoreServiceServer(grpcServer, &server{})
+	grpcServer := rpc.NewRpcServer()
 
 	if err := grpcServer.Serve(list); err != nil {
 		log.Fatalf("failed to start grpc server %v", err)
