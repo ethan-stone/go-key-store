@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option go_package = "github.com/ethan-stone/go-key-store/rpc";
+
+package node_rpc;
+
+message PingRequest {
+}
+
+message PingResponse {
+    bool ok = 1;
+}
+
+service StoreService {
+    rpc Ping(PingRequest) returns (PingResponse) {} 
+}
