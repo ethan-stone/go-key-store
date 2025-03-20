@@ -9,7 +9,7 @@ type KeyValueStore struct {
 
 func (store *KeyValueStore) Get(key string) (string, bool) {
 	store.RLock()
-	defer store.Unlock()
+	defer store.RUnlock()
 	val, ok := store.data[key]
 	return val, ok
 }
