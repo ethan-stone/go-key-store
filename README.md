@@ -6,7 +6,7 @@ This repo is an attempt to many of the concepts related to distributed systems.
 
 - [x] Super basic key value store server.
 - [x] Ping between nodes in a cluster via manual configuration.
-- [ ] Organize code a bit.
+- [x] Organize code a bit.
 - [ ] How to gracefully handle nodes going down?
 
 # Building GRPC Code
