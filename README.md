@@ -4,9 +4,9 @@ This repo is an attempt to many of the concepts related to distributed systems.
 
 # Todo
 
-- [ ] Super basic key value store server.
-- [ ] Ping between nodes in a cluster via manual configuration.
-- [ ] Data replication between nodes in a cluster. Replicate data on all nodes at first.
+- [x] Super basic key value store server.
+- [x] Ping between nodes in a cluster via manual configuration.
+- [ ] Organize code a bit.
 
 # Building GRPC Code
 
