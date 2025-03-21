@@ -2,6 +2,7 @@ syntax = "proto3";
 
 option go_package = "github.com/ethan-stone/go-key-store/rpc";
 
+
 package node_rpc;
 
 message PingRequest {
@@ -11,6 +12,36 @@ message PingResponse {
     bool ok = 1;
 }
 
+message GetRequest {
+    string key = 1;
+}
+
+message GetResponse {
+    bool ok = 1; 
+    string key = 2;
+    string val = 3;
+}
+
+message PutRequest {
+    string key = 1; 
+    string val = 2;
+}
+
+message PutResponse {
+    bool ok = 1;
+}
+
+message DeleteRequest {
+    string key = 1;
+}
+
+message DeleteResponse {
+    bool ok = 1;
+}
+
 service StoreService {
     rpc Ping(PingRequest) returns (PingResponse) {} 
+    rpc Get(GetRequest) returns (GetResponse) {}
+    rpc Put(PutRequest) returns (PutResponse) {}
+    rpc Delete(DeleteRequest) returns (DeleteResponse) {}
 }
