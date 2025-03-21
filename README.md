@@ -7,8 +7,9 @@ This repo is an attempt to many of the concepts related to distributed systems.
 - [x] Super basic key value store server.
 - [x] Ping between nodes in a cluster via manual configuration.
 - [x] Organize code a bit.
-- [ ] Assign hash slots to nodes manually for now.
+- [x] Assign hash slots to nodes manually for now.
 - [ ] Route requests to correct node for hash slot.
+- [ ] Consider making a "KeyValueStoreFactory" that can get either a "LocalKeyValueStore" or a "RemoteKeyValueStore". Local means the data is stored on this node, while Remote means it's stored on a different node. \*Update definitely need to do this. The local store needs to be decoupled from RPC, because the RPC server side is going to need to reference the local store. Otherwise we'd have a circular module dependency.
 - [ ] How to gracefully handle nodes going down?
 
 # Building GRPC Code
