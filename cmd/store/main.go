@@ -24,23 +24,14 @@ func main() {
 		log.Fatalf("Must provide following command line arguments. go run . <http-port> <grpc-port>")
 	}
 
-	clusterConfig, err := configuration.LoadClusterConfigFromFile("cluster-config.json")
+	clusterConfig, err := configuration.LoadClusterConfigFromFile("cluster-config.json", "localhost:"+args[2])
 
 	if err != nil {
 		log.Fatalf("Failed to load cluster config file %v", err)
 	}
 
-	otherNodeAddresses := []string{}
-
-	for i := range clusterConfig.Addresses {
-		if clusterConfig.Addresses[i] != "localhost:"+args[2] {
-			log.Printf("Adding address %s to other node addresses", clusterConfig.Addresses[i])
-			otherNodeAddresses = append(otherNodeAddresses, clusterConfig.Addresses[i])
-		}
-	}
-
-	for i := range otherNodeAddresses {
-		address := otherNodeAddresses[i]
+	for i := range clusterConfig.OtherNodes {
+		address := clusterConfig.OtherNodes[i].Address
 
 		client, err := rpc.NewRpcClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 

@@ -7,6 +7,8 @@ This repo is an attempt to many of the concepts related to distributed systems.
 - [x] Super basic key value store server.
 - [x] Ping between nodes in a cluster via manual configuration.
 - [x] Organize code a bit.
+- [ ] Assign hash slots to nodes manually for now.
+- [ ] Route requests to correct node for hash slot.
 - [ ] How to gracefully handle nodes going down?
 
 # Building GRPC Code
