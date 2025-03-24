@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/gossip"
@@ -75,6 +76,24 @@ func main() {
 		}
 
 		configuration.SetClusterConfig(clusterConfig)
+
+		go func() {
+			for range time.NewTicker(time.Second * 5).C {
+				otherNodes, err := gossipClient.Gossip()
+
+				if err != nil {
+					log.Fatal("failed to gossip with seed node")
+				}
+
+				clusterConfig = &configuration.ClusterConfig{
+					ThisNode:   thisNodeConfig,
+					OtherNodes: otherNodes,
+				}
+
+				configuration.SetClusterConfig(clusterConfig)
+
+			}
+		}()
 	} else {
 		clusterConfig = &configuration.ClusterConfig{
 			ThisNode:   thisNodeConfig,
@@ -107,7 +126,6 @@ func main() {
 	httpServer := http_server.NewHttpServer(":"+nodeBootstrapConfig.HttpPort, clusterConfig)
 
 	go func() {
-
 		log.Printf("HTTP server running on port %s", nodeBootstrapConfig.HttpPort)
 
 		if err := httpServer.ListenAndServe(); err != nil {

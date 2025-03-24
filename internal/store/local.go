@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
@@ -16,14 +17,15 @@ func (store *LocalKeyValueStore) Get(key string) (string, error) {
 	defer store.RUnlock()
 	val, ok := store.data[key]
 
-	// not finding a key is considered a no op
-	if ok {
-		defer OpLog.AddEntry(&OpLogEntry{
-			OpType: Get,
-			Key:    key,
-			Val:    &val,
-		})
+	if !ok {
+		return "", fmt.Errorf("not found")
 	}
+
+	OpLog.AddEntry(&OpLogEntry{
+		OpType: Get,
+		Key:    key,
+		Val:    &val,
+	})
 
 	return val, nil
 }

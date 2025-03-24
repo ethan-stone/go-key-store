@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"time"
 
@@ -113,14 +112,6 @@ func (rpcClient *RpcClient) Gossip(req *GossipRequest) (*GossipResponse, error) 
 	}
 
 	log.Printf("Gossip result ok = %t", r.GetOk())
-
-	jsonData, err := json.Marshal(r)
-
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("Response = %s", jsonData)
 
 	return r, nil
 }

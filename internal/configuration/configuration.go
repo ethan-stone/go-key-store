@@ -38,6 +38,20 @@ func GenerateNodeID() string {
 var clusterConfig *ClusterConfig
 
 func SetClusterConfig(config *ClusterConfig) {
+	filteredNodes := []*NodeConfig{}
+	seenIDs := make(map[string]bool)
+
+	// Add this node's ID to the seen IDs to filter it out from other nodes.
+	seenIDs[config.ThisNode.ID] = true
+
+	for _, node := range config.OtherNodes {
+		if _, seen := seenIDs[node.ID]; !seen {
+			filteredNodes = append(filteredNodes, node)
+			seenIDs[node.ID] = true
+		}
+	}
+
+	config.OtherNodes = filteredNodes
 	clusterConfig = config
 }
 

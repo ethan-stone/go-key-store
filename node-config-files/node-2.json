@@ -2,5 +2,5 @@
   "httpPort": "8082",
   "grpcPort": "8083",
   "seedNodeAddresses": ["localhost:8081"],
-  "hashSlots": [8192, 16383]
+  "hashSlots": [5501, 11000]
 }

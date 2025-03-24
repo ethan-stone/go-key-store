@@ -106,6 +106,8 @@ func (*RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipResponse
 		return nil, err
 	}
 
+	configuration.SetClusterConfig(clusterConfig)
+
 	return &GossipResponse{
 		OtherNodes: otherNodes,
 		Ok:         true,
