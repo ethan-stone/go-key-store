@@ -43,3 +43,32 @@ func (rpcClient *RpcClient) Ping() (bool, error) {
 
 	return r.GetOk(), nil
 }
+
+func (rpcClient *RpcClient) Get(key string) (*GetResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	return rpcClient.client.Get(ctx, &GetRequest{Key: key})
+}
+
+func (rpcClient *RpcClient) Put(key string, val string) (*PutResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	return rpcClient.client.Put(ctx, &PutRequest{
+		Key: key,
+		Val: val,
+	})
+}
+
+func (rpcClient *RpcClient) Delete(key string) (*DeleteResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	return rpcClient.client.Delete(ctx, &DeleteRequest{
+		Key: key,
+	})
+}

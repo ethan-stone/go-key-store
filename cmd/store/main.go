@@ -4,13 +4,11 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/http_server"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"github.com/ethan-stone/go-key-store/internal/store"
 )
 
 func main() {
@@ -30,28 +28,11 @@ func main() {
 		log.Fatalf("Failed to load cluster config file %v", err)
 	}
 
-	for i := range clusterConfig.OtherNodes {
-		address := clusterConfig.OtherNodes[i].Address
+	localStore := store.InitializeLocalKeyValueStore(clusterConfig)
 
-		client, err := rpc.NewRpcClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	store.InitializeRemoteStores(clusterConfig)
 
-		if err != nil {
-			log.Fatalf("Failed to make grpc client %v", err)
-		}
-
-		go func() {
-			for range time.NewTicker(time.Second * 5).C {
-
-				r, err := client.Ping()
-
-				if err != nil || !r {
-					log.Fatalf("Could not ping server %v", err)
-				}
-			}
-		}()
-	}
-
-	httpServer := http_server.NewHttpServer(":" + args[1])
+	httpServer := http_server.NewHttpServer(":"+args[1], clusterConfig)
 
 	go func() {
 
@@ -70,7 +51,7 @@ func main() {
 
 	log.Printf("GRPC server runnnig on port %s", args[2])
 
-	grpcServer := rpc.NewRpcServer()
+	grpcServer := rpc.NewRpcServer(localStore)
 
 	if err := grpcServer.Serve(list); err != nil {
 		log.Fatalf("failed to start grpc server %v", err)
