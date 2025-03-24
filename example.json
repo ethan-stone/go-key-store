@@ -1,0 +1,19 @@
+{
+  "ThisNode": {
+    "ID": "86fa8cfd-47f3-4111-8dc0-65f12f833c13",
+    "address": "localhost:8083",
+    "hashSlots": [8192, 16383]
+  },
+  "OtherNodes": [
+    {
+      "ID": "86fa8cfd-47f3-4111-8dc0-65f12f833c13",
+      "address": "localhost:8083",
+      "hashSlots": [8192, 16383]
+    },
+    {
+      "ID": "835176f9-9929-4a9d-a845-5e4cdec10a9d",
+      "address": "localhost:8081",
+      "hashSlots": [0, 8191]
+    }
+  ]
+}

@@ -2,8 +2,8 @@ package configuration
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
-	"log"
 	"os"
 
 	"github.com/google/uuid"
@@ -13,12 +13,20 @@ type ClusterConfigFile struct {
 	Nodes []NodeConfig `json:"nodes"`
 }
 
+type NodeBootstrapConfig struct {
+	GrpcPort          string   `json:"grpcPort"`
+	HttpPort          string   `json:"httpPort"`
+	SeedNodeAddresses []string `json:"seedNodeAddresses"`
+	HashSlots         []int    `json:"hashSlots"`
+}
+
 type ClusterConfig struct {
-	ThisNode   NodeConfig
-	OtherNodes []NodeConfig
+	ThisNode   *NodeConfig
+	OtherNodes []*NodeConfig
 }
 
 type NodeConfig struct {
+	ID        string
 	Address   string `json:"address"`
 	HashSlots []int  `json:"hashSlots"` // first element is the start of the range, second element is the end of the range.
 }
@@ -27,8 +35,22 @@ func GenerateNodeID() string {
 	return uuid.New().String()
 }
 
-func LoadClusterConfigFromFile(path string, thisNodesAddress string) (*ClusterConfig, error) {
-	configFile, err := os.Open("cluster-config.json")
+var clusterConfig *ClusterConfig
+
+func SetClusterConfig(config *ClusterConfig) {
+	clusterConfig = config
+}
+
+func GetClusterConfig() (*ClusterConfig, error) {
+	if clusterConfig == nil {
+		return nil, fmt.Errorf("cluster config is not set")
+	}
+
+	return clusterConfig, nil
+}
+
+func LoadNodeBootstrapConfigFromFile(path string) (*NodeBootstrapConfig, error) {
+	configFile, err := os.Open(path)
 
 	if err != nil {
 		return nil, err
@@ -38,38 +60,13 @@ func LoadClusterConfigFromFile(path string, thisNodesAddress string) (*ClusterCo
 
 	byteResult, _ := io.ReadAll(configFile)
 
-	var clusterConfigFile ClusterConfigFile
+	var nodeBootstrapConfig NodeBootstrapConfig
 
-	err = json.Unmarshal(byteResult, &clusterConfigFile)
+	err = json.Unmarshal(byteResult, &nodeBootstrapConfig)
 
 	if err != nil {
 		return nil, err
 	}
 
-	var thisNode *NodeConfig
-
-	otherNodes := []NodeConfig{}
-
-	for i := range clusterConfigFile.Nodes {
-		if clusterConfigFile.Nodes[i].Address == thisNodesAddress {
-			thisNode = &NodeConfig{
-				Address:   clusterConfigFile.Nodes[i].Address,
-				HashSlots: clusterConfigFile.Nodes[i].HashSlots,
-			}
-		} else {
-			otherNodes = append(otherNodes, NodeConfig{
-				Address:   clusterConfigFile.Nodes[i].Address,
-				HashSlots: clusterConfigFile.Nodes[i].HashSlots,
-			})
-		}
-	}
-
-	if thisNode == nil {
-		log.Fatalf("This nodes address is not in the cluster configuration file.")
-	}
-
-	return &ClusterConfig{
-		ThisNode:   *thisNode,
-		OtherNodes: otherNodes,
-	}, nil
+	return &nodeBootstrapConfig, nil
 }

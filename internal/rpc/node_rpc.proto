@@ -39,9 +39,29 @@ message DeleteResponse {
     bool ok = 1;
 }
 
+message GossipRequest {
+    string node_id = 1;
+    string address = 2;
+    uint32 hash_slots_start = 3;
+    uint32 hash_slots_end = 4;
+}
+
+message NodeConfig {
+    string node_id = 1;
+    string address = 2;
+    uint32 hash_slots_start = 3;
+    uint32 hash_slots_end = 4;
+}
+
+message GossipResponse {
+    bool ok = 1;
+    repeated NodeConfig other_nodes = 2;
+}
+
 service StoreService {
     rpc Ping(PingRequest) returns (PingResponse) {} 
     rpc Get(GetRequest) returns (GetResponse) {}
     rpc Put(PutRequest) returns (PutResponse) {}
     rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+    rpc Gossip(GossipRequest) returns (GossipResponse) {}
 }

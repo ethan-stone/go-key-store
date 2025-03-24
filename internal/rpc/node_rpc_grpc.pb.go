@@ -23,6 +23,7 @@ const (
 	StoreService_Get_FullMethodName    = "/node_rpc.StoreService/Get"
 	StoreService_Put_FullMethodName    = "/node_rpc.StoreService/Put"
 	StoreService_Delete_FullMethodName = "/node_rpc.StoreService/Delete"
+	StoreService_Gossip_FullMethodName = "/node_rpc.StoreService/Gossip"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -33,6 +34,7 @@ type StoreServiceClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
+	Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error)
 }
 
 type storeServiceClient struct {
@@ -83,6 +85,16 @@ func (c *storeServiceClient) Delete(ctx context.Context, in *DeleteRequest, opts
 	return out, nil
 }
 
+func (c *storeServiceClient) Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GossipResponse)
+	err := c.cc.Invoke(ctx, StoreService_Gossip_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type StoreServiceServer interface {
 	Get(context.Context, *GetRequest) (*GetResponse, error)
 	Put(context.Context, *PutRequest) (*PutResponse, error)
 	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
+	Gossip(context.Context, *GossipRequest) (*GossipResponse, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedStoreServiceServer) Put(context.Context, *PutRequest) (*PutRe
 }
 func (UnimplementedStoreServiceServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
+}
+func (UnimplementedStoreServiceServer) Gossip(context.Context, *GossipRequest) (*GossipResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Gossip not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -206,6 +222,24 @@ func _StoreService_Delete_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_Gossip_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GossipRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).Gossip(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_Gossip_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).Gossip(ctx, req.(*GossipRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _StoreService_Delete_Handler,
+		},
+		{
+			MethodName: "Gossip",
+			Handler:    _StoreService_Gossip_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

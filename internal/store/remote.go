@@ -3,12 +3,9 @@ package store
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type RemoteKeyValueStore struct {
@@ -57,13 +54,19 @@ func (store *RemoteKeyValueStore) Delete(key string) error {
 	return nil
 }
 
-var RemoteKeyValueStores map[string]*RemoteKeyValueStore = make(map[string]*RemoteKeyValueStore)
+var remoteKeyValueStores map[string]*RemoteKeyValueStore = make(map[string]*RemoteKeyValueStore)
 
 func InitializeRemoteStores(clusterConfig *configuration.ClusterConfig) {
 	for i := range clusterConfig.OtherNodes {
 		address := clusterConfig.OtherNodes[i].Address
 
-		client, err := rpc.NewRpcClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if address == clusterConfig.ThisNode.Address {
+			continue
+		}
+
+		client, err := rpc.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+			Address: address,
+		})
 
 		if err != nil {
 			log.Fatalf("Failed to make grpc client %v", err)
@@ -73,18 +76,7 @@ func InitializeRemoteStores(clusterConfig *configuration.ClusterConfig) {
 			rpcClient: client,
 		}
 
-		// TODO use node ID
-		RemoteKeyValueStores[address] = remoteKeyValueStore
+		remoteKeyValueStores[address] = remoteKeyValueStore
 
-		go func() {
-			for range time.NewTicker(time.Second * 5).C {
-
-				r, err := client.Ping()
-
-				if err != nil || !r {
-					log.Fatalf("Could not ping server %v", err)
-				}
-			}
-		}()
 	}
 }
