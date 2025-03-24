@@ -1,10 +1,10 @@
 package store
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
+	"github.com/ethan-stone/go-key-store/internal/service"
 )
 
 type LocalKeyValueStore struct {
@@ -12,13 +12,16 @@ type LocalKeyValueStore struct {
 	data map[string]string
 }
 
-func (store *LocalKeyValueStore) Get(key string) (string, error) {
+func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
 	store.RLock()
 	defer store.RUnlock()
 	val, ok := store.data[key]
 
 	if !ok {
-		return "", fmt.Errorf("not found")
+		return &service.GetResult{
+			Ok:  false,
+			Val: "",
+		}, nil
 	}
 
 	OpLog.AddEntry(&OpLogEntry{
@@ -27,7 +30,10 @@ func (store *LocalKeyValueStore) Get(key string) (string, error) {
 		Val:    &val,
 	})
 
-	return val, nil
+	return &service.GetResult{
+		Ok:  true,
+		Val: val,
+	}, nil
 }
 
 func (store *LocalKeyValueStore) Put(key string, val string) error {

@@ -22,15 +22,23 @@ func (s *RpcServer) Ping(_ context.Context, req *PingRequest) (*PingResponse, er
 func (s *RpcServer) Get(_ context.Context, req *GetRequest) (*GetResponse, error) {
 	log.Printf("Get request received for key %s", req.GetKey())
 
-	val, err := s.storeService.Get(req.GetKey())
+	result, err := s.storeService.Get(req.GetKey())
 
 	if err != nil {
 		return nil, err
 	}
 
+	if !result.Ok {
+		return &GetResponse{
+			Key: req.GetKey(),
+			Val: "",
+			Ok:  false,
+		}, nil
+	}
+
 	return &GetResponse{
 		Key: req.GetKey(),
-		Val: val,
+		Val: result.Val,
 		Ok:  true,
 	}, nil
 }

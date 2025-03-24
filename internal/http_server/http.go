@@ -29,16 +29,21 @@ func getHandler(clusterConfig *configuration.ClusterConfig) http.HandlerFunc {
 			return
 		}
 
-		val, err := store.Get(key)
+		result, err := store.Get(key)
 
 		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if !result.Ok {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(KeyValueResponse{Key: key, Value: val})
+		json.NewEncoder(w).Encode(KeyValueResponse{Key: key, Value: result.Val})
 	}
 }
 

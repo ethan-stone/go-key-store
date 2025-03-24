@@ -6,24 +6,31 @@ import (
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
+	"github.com/ethan-stone/go-key-store/internal/service"
 )
 
 type RemoteKeyValueStore struct {
 	rpcClient *rpc.RpcClient
 }
 
-func (store *RemoteKeyValueStore) Get(key string) (string, error) {
+func (store *RemoteKeyValueStore) Get(key string) (*service.GetResult, error) {
 	r, err := store.rpcClient.Get(key)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if !r.GetOk() {
-		return "", fmt.Errorf("could not find key \"%s\"", key)
+		return &service.GetResult{
+			Ok:  false,
+			Val: "",
+		}, nil
 	}
 
-	return r.GetVal(), nil
+	return &service.GetResult{
+		Ok:  true,
+		Val: r.GetVal(),
+	}, nil
 }
 
 func (store *RemoteKeyValueStore) Put(key string, val string) error {
