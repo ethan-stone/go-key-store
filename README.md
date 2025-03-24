@@ -17,7 +17,7 @@ This repo is an attempt to many of the concepts related to distributed systems.
   - [ ] Implement gossip with seed nodes. When a new node starts, it reaches out to a random seed node. The seed node adds the new node to it's membership list, and returns the membership list with it's configuration to the new node. Now the new node has knowledge of all other nodes.
 - [ ] Automatic assigning of hash slots.
 - [ ] How to gracefully handle nodes going down?
-- [ ] Better error handling for internal errors vs. a key just not being found. Right now any error is handled as a not found in the http api.
+- [x] Better error handling for internal errors vs. a key just not being found. Right now any error is handled as a not found in the http api.
 
 # Building GRPC Code
 
