@@ -90,7 +90,7 @@ func TestReturnsLocalStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore(clusterConfig)
+	InitializeLocalKeyValueStore()
 
 	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
 
@@ -122,7 +122,7 @@ func TestReturnsRemoteStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore(clusterConfig)
+	InitializeLocalKeyValueStore()
 
 	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
 

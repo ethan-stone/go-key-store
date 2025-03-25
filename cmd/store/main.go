@@ -121,7 +121,7 @@ func main() {
 		log.Fatalf("failed to load node bootstrap config file %v", err)
 	}
 
-	localStore := store.InitializeLocalKeyValueStore(clusterConfig)
+	localStore := store.InitializeLocalKeyValueStore()
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{

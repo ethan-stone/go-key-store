@@ -3,7 +3,6 @@ package store
 import (
 	"sync"
 
-	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/service"
 )
 
@@ -66,7 +65,7 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 
 var Store *LocalKeyValueStore
 
-func InitializeLocalKeyValueStore(clusterConfig *configuration.ClusterConfig) *LocalKeyValueStore {
+func InitializeLocalKeyValueStore() *LocalKeyValueStore {
 	Store = &LocalKeyValueStore{
 		data: make(map[string]string),
 	}
