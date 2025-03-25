@@ -31,3 +31,7 @@ protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=p
 - Website: https://raft.github.io/
 - Paper: https://raft.github.io/raft.pdf
 - Animation: https://thesecretlivesofdata.com/raft/
+
+# HashSlots
+
+Each node is responsible for a certain range of hash slot. We do the crc32(key) modulo 16384 to see what hash slot the key goes into and therefore what node the key should be stored in.
