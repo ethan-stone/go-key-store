@@ -10,6 +10,7 @@ This repo is an attempt to many of the concepts related to distributed systems.
 - [x] Assign hash slots to nodes manually for now.
 - [x] Route requests to correct node for hash slot.
 - [x] Consider making a "KeyValueStoreFactory" that can get either a "LocalKeyValueStore" or a "RemoteKeyValueStore". Local means the data is stored on this node, while Remote means it's stored on a different node. \*Update definitely need to do this. The local store needs to be decoupled from RPC, because the RPC server side is going to need to reference the local store. Otherwise we'd have a circular module dependency.
+- [ ] Unit tests of existing functionality.
 - [ ] Gossip-based membership and health check.
   - [x] Update to use a config file per node. For now each config file should have all other nodes.
   - [x] Add seed nodes to config file of nodes.
