@@ -10,7 +10,7 @@ import (
 )
 
 type RemoteKeyValueStore struct {
-	rpcClient *rpc.RpcClient
+	rpcClient rpc.RpcClient
 }
 
 func (store *RemoteKeyValueStore) Get(key string) (*service.GetResult, error) {

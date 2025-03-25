@@ -9,13 +9,22 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type RpcClient struct {
+type RpcClient interface {
+	Ping() (bool, error)
+	Get(key string) (*GetResponse, error)
+	Put(key string, val string) (*PutResponse, error)
+	Delete(key string) (*DeleteResponse, error)
+	Gossip(req *GossipRequest) (*GossipResponse, error)
+	GetAddress() string
+}
+
+type GrpcClient struct {
 	conn    *grpc.ClientConn
 	client  StoreServiceClient
 	Address string
 }
 
-func NewRpcClient(address string, opts grpc.DialOption) (*RpcClient, error) {
+func NewRpcClient(address string, opts grpc.DialOption) (*GrpcClient, error) {
 	conn, err := grpc.NewClient(address, opts)
 
 	if err != nil {
@@ -24,14 +33,18 @@ func NewRpcClient(address string, opts grpc.DialOption) (*RpcClient, error) {
 
 	client := NewStoreServiceClient(conn)
 
-	return &RpcClient{
+	return &GrpcClient{
 		conn:    conn,
 		client:  client,
 		Address: address,
 	}, nil
 }
 
-func (rpcClient *RpcClient) Ping() (bool, error) {
+func (rpcClient *GrpcClient) GetAddress() string {
+	return rpcClient.Address
+}
+
+func (rpcClient *GrpcClient) Ping() (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -47,7 +60,7 @@ func (rpcClient *RpcClient) Ping() (bool, error) {
 	return r.GetOk(), nil
 }
 
-func (rpcClient *RpcClient) Get(key string) (*GetResponse, error) {
+func (rpcClient *GrpcClient) Get(key string) (*GetResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -63,7 +76,7 @@ func (rpcClient *RpcClient) Get(key string) (*GetResponse, error) {
 	return r, nil
 }
 
-func (rpcClient *RpcClient) Put(key string, val string) (*PutResponse, error) {
+func (rpcClient *GrpcClient) Put(key string, val string) (*PutResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -82,7 +95,7 @@ func (rpcClient *RpcClient) Put(key string, val string) (*PutResponse, error) {
 	return r, nil
 }
 
-func (rpcClient *RpcClient) Delete(key string) (*DeleteResponse, error) {
+func (rpcClient *GrpcClient) Delete(key string) (*DeleteResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -100,7 +113,7 @@ func (rpcClient *RpcClient) Delete(key string) (*DeleteResponse, error) {
 	return r, nil
 }
 
-func (rpcClient *RpcClient) Gossip(req *GossipRequest) (*GossipResponse, error) {
+func (rpcClient *GrpcClient) Gossip(req *GossipRequest) (*GossipResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 
 	defer cancel()
@@ -116,29 +129,26 @@ func (rpcClient *RpcClient) Gossip(req *GossipRequest) (*GossipResponse, error) 
 	return r, nil
 }
 
-// map of node ID to rpc client
-var rpcClients map[string]*RpcClient = make(map[string]*RpcClient)
-
 type RpcClientConfig struct {
 	Address string
 }
 
 type RpcClientManager interface {
-	GetOrCreateRpcClient(config *RpcClientConfig) (*RpcClient, error)
+	GetOrCreateRpcClient(config *RpcClientConfig) (RpcClient, error)
 }
 
 type GrpcClientManager struct {
-	rpcClients map[string]*RpcClient
+	rpcClients map[string]*GrpcClient
 }
 
 func NewGrpcClientManager() *GrpcClientManager {
 	return &GrpcClientManager{
-		rpcClients: make(map[string]*RpcClient),
+		rpcClients: make(map[string]*GrpcClient),
 	}
 }
 
-func (rpcClientManager *GrpcClientManager) GetOrCreateRpcClient(config *RpcClientConfig) (*RpcClient, error) {
-	existingClient, ok := rpcClients[config.Address]
+func (rpcClientManager *GrpcClientManager) GetOrCreateRpcClient(config *RpcClientConfig) (RpcClient, error) {
+	existingClient, ok := rpcClientManager.rpcClients[config.Address]
 
 	if ok && existingClient != nil {
 		return existingClient, nil
@@ -150,7 +160,7 @@ func (rpcClientManager *GrpcClientManager) GetOrCreateRpcClient(config *RpcClien
 		return nil, err
 	}
 
-	rpcClients[config.Address] = newClient
+	rpcClientManager.rpcClients[config.Address] = newClient
 
 	go func() {
 		for range time.NewTicker(time.Second * 5).C {

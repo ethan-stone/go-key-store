@@ -8,7 +8,7 @@ import (
 )
 
 type GossipClient struct {
-	rpcClient *rpc.RpcClient            // the client to the node to gossip with
+	rpcClient rpc.RpcClient             // the client to the node to gossip with
 	thisNode  *configuration.NodeConfig // the config of the current node
 }
 
@@ -23,7 +23,7 @@ func (gossipClient *GossipClient) Gossip() ([]*configuration.NodeConfig, error) 
 	)
 
 	if err != nil {
-		log.Printf("Failed to gossip with node %s", gossipClient.rpcClient.Address)
+		log.Printf("Failed to gossip with node %s", gossipClient.rpcClient.GetAddress())
 		return nil, err
 	}
 
@@ -38,13 +38,13 @@ func (gossipClient *GossipClient) Gossip() ([]*configuration.NodeConfig, error) 
 		})
 	}
 
-	log.Printf("Successfully gossipped with node %s", gossipClient.rpcClient.Address)
+	log.Printf("Successfully gossipped with node %s", gossipClient.rpcClient.GetAddress())
 
 	return otherNodes, nil
 }
 
 type GossipClientConfig struct {
-	RpcClient *rpc.RpcClient
+	RpcClient rpc.RpcClient
 	ThisNode  *configuration.NodeConfig
 }
 
