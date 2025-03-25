@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
+	"github.com/ethan-stone/go-key-store/internal/rpc"
 	"github.com/ethan-stone/go-key-store/internal/store"
 )
 
@@ -18,11 +19,11 @@ type PutRequestBody struct {
 	Value string `json:"value"`
 }
 
-func getHandler(clusterConfig *configuration.ClusterConfig) http.HandlerFunc {
+func getHandler(clusterConfig *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		store, err := store.GetStore(key, clusterConfig)
+		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -47,11 +48,11 @@ func getHandler(clusterConfig *configuration.ClusterConfig) http.HandlerFunc {
 	}
 }
 
-func putHandler(clusterConfig *configuration.ClusterConfig) http.HandlerFunc {
+func putHandler(clusterConfig *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		store, err := store.GetStore(key, clusterConfig)
+		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -74,12 +75,11 @@ func putHandler(clusterConfig *configuration.ClusterConfig) http.HandlerFunc {
 	}
 }
 
-func deleteHandler(clusterConfig *configuration.ClusterConfig) http.HandlerFunc {
-
+func deleteHandler(clusterConfig *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		store, err := store.GetStore(key, clusterConfig)
+		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -93,17 +93,23 @@ func deleteHandler(clusterConfig *configuration.ClusterConfig) http.HandlerFunc 
 
 }
 
-func NewHttpServer(address string, clusterConfig *configuration.ClusterConfig) *http.Server {
+type HttpServerConfig struct {
+	Address          string
+	ClusterConfig    *configuration.ClusterConfig
+	RpcClientManager rpc.RpcClientManager
+}
+
+func NewHttpServer(config *HttpServerConfig) *http.Server {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /item/{key}", getHandler(clusterConfig))
-	mux.HandleFunc("POST /item/{key}", putHandler(clusterConfig))
-	mux.HandleFunc("DELETE /item/{key}", deleteHandler(clusterConfig))
+	mux.HandleFunc("GET /item/{key}", getHandler(config.ClusterConfig, config.RpcClientManager))
+	mux.HandleFunc("POST /item/{key}", putHandler(config.ClusterConfig, config.RpcClientManager))
+	mux.HandleFunc("DELETE /item/{key}", deleteHandler(config.ClusterConfig, config.RpcClientManager))
 
 	// this is the actual server
 	httpServer := &http.Server{
 		Handler:      mux, // This is the important line
-		Addr:         address,
+		Addr:         config.Address,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

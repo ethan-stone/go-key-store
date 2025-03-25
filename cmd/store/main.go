@@ -48,10 +48,12 @@ func main() {
 
 	var clusterConfig *configuration.ClusterConfig
 
+	grpcClientManager := rpc.NewGrpcClientManager()
+
 	// if the seed node addresses is 0, then that means this node is a seed node
 	if len(nodeBootstrapConfig.SeedNodeAddresses) > 0 {
 		// TODO randomize seed node selection
-		seedNodeRpcClient, err := rpc.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+		seedNodeRpcClient, err := grpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
 			Address: nodeBootstrapConfig.SeedNodeAddresses[0],
 		})
 
@@ -103,8 +105,6 @@ func main() {
 		configuration.SetClusterConfig(clusterConfig)
 	}
 
-	// TODO: continue to gossip every X seconds
-
 	// initialize rpc clients
 	for i := range clusterConfig.OtherNodes {
 		// skip over current node
@@ -112,7 +112,7 @@ func main() {
 			continue
 		}
 
-		rpc.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+		grpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
 			Address: clusterConfig.OtherNodes[i].Address,
 		})
 	}
@@ -123,7 +123,13 @@ func main() {
 
 	localStore := store.InitializeLocalKeyValueStore(clusterConfig)
 
-	httpServer := http_server.NewHttpServer(":"+nodeBootstrapConfig.HttpPort, clusterConfig)
+	httpServer := http_server.NewHttpServer(
+		&http_server.HttpServerConfig{
+			Address:          ":" + nodeBootstrapConfig.HttpPort,
+			ClusterConfig:    clusterConfig,
+			RpcClientManager: grpcClientManager,
+		},
+	)
 
 	go func() {
 		log.Printf("HTTP server running on port %s", nodeBootstrapConfig.HttpPort)
@@ -141,7 +147,7 @@ func main() {
 
 	log.Printf("GRPC server runnnig on port %s", nodeBootstrapConfig.GrpcPort)
 
-	grpcServer := rpc.NewRpcServer(localStore)
+	grpcServer := rpc.NewRpcServer(localStore, grpcClientManager)
 
 	if err := grpcServer.Serve(list); err != nil {
 		log.Fatalf("failed to start grpc server %v", err)

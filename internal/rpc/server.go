@@ -11,7 +11,8 @@ import (
 
 type RpcServer struct {
 	UnimplementedStoreServiceServer
-	storeService service.StoreService
+	storeService     service.StoreService
+	rpcClientManager RpcClientManager
 }
 
 func (s *RpcServer) Ping(_ context.Context, req *PingRequest) (*PingResponse, error) {
@@ -71,7 +72,7 @@ func (s *RpcServer) Delete(_ context.Context, req *DeleteRequest) (*DeleteRespon
 	}, nil
 }
 
-func (*RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipResponse, error) {
+func (s *RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipResponse, error) {
 	log.Printf("Received gossip request from node %s", req.GetNodeId())
 
 	clusterConfig, err := configuration.GetClusterConfig()
@@ -106,7 +107,7 @@ func (*RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipResponse
 		HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
 	})
 
-	_, err = GetOrCreateRpcClient(&RpcClientConfig{
+	_, err = s.rpcClientManager.GetOrCreateRpcClient(&RpcClientConfig{
 		Address: req.GetAddress(),
 	})
 
@@ -122,11 +123,12 @@ func (*RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipResponse
 	}, nil
 }
 
-func NewRpcServer(storeService service.StoreService) *grpc.Server {
+func NewRpcServer(storeService service.StoreService, rpcClientManager RpcClientManager) *grpc.Server {
 	grpcServer := grpc.NewServer()
 
 	RegisterStoreServiceServer(grpcServer, &RpcServer{
-		storeService: storeService,
+		storeService:     storeService,
+		rpcClientManager: rpcClientManager,
 	})
 
 	return grpcServer

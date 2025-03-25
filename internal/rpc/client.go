@@ -123,7 +123,21 @@ type RpcClientConfig struct {
 	Address string
 }
 
-func GetOrCreateRpcClient(config *RpcClientConfig) (*RpcClient, error) {
+type RpcClientManager interface {
+	GetOrCreateRpcClient(config *RpcClientConfig) (*RpcClient, error)
+}
+
+type GrpcClientManager struct {
+	rpcClients map[string]*RpcClient
+}
+
+func NewGrpcClientManager() *GrpcClientManager {
+	return &GrpcClientManager{
+		rpcClients: make(map[string]*RpcClient),
+	}
+}
+
+func (rpcClientManager *GrpcClientManager) GetOrCreateRpcClient(config *RpcClientConfig) (*RpcClient, error) {
 	existingClient, ok := rpcClients[config.Address]
 
 	if ok && existingClient != nil {

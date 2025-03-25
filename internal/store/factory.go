@@ -10,7 +10,7 @@ import (
 	"github.com/ethan-stone/go-key-store/internal/service"
 )
 
-func GetStore(key string, clusterConfig *configuration.ClusterConfig) (service.StoreService, error) {
+func GetStore(key string, clusterConfig *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) (service.StoreService, error) {
 	hashSlot := hash.GetHashSlot(key)
 
 	log.Printf("Key %s belongs to hash slot %d", key, hashSlot)
@@ -27,7 +27,7 @@ func GetStore(key string, clusterConfig *configuration.ClusterConfig) (service.S
 	for i := range clusterConfig.OtherNodes {
 		otherNode := clusterConfig.OtherNodes[i]
 		if hashSlot >= uint32(otherNode.HashSlots[0]) && hashSlot <= uint32(otherNode.HashSlots[1]) {
-			client, err := rpc.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+			client, err := rpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
 				Address: otherNode.Address,
 			})
 

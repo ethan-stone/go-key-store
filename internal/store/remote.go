@@ -63,7 +63,7 @@ func (store *RemoteKeyValueStore) Delete(key string) error {
 
 var remoteKeyValueStores map[string]*RemoteKeyValueStore = make(map[string]*RemoteKeyValueStore)
 
-func InitializeRemoteStores(clusterConfig *configuration.ClusterConfig) {
+func InitializeRemoteStores(clusterConfig *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) {
 	for i := range clusterConfig.OtherNodes {
 		address := clusterConfig.OtherNodes[i].Address
 
@@ -71,7 +71,7 @@ func InitializeRemoteStores(clusterConfig *configuration.ClusterConfig) {
 			continue
 		}
 
-		client, err := rpc.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+		client, err := rpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
 			Address: address,
 		})
 
