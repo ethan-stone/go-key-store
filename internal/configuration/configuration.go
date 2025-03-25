@@ -9,10 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type ClusterConfigFile struct {
-	Nodes []NodeConfig `json:"nodes"`
-}
-
 type NodeBootstrapConfig struct {
 	GrpcPort          string   `json:"grpcPort"`
 	HttpPort          string   `json:"httpPort"`
