@@ -1,10 +1,11 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/gossip"
@@ -27,83 +28,38 @@ func main() {
 
 	log.SetPrefix(nodeID + " ")
 
-	// mux is a router
-	args := os.Args
+	var (
+		httpPort string
+		grpcPort string
+	)
 
-	if len(args) != 2 {
-		log.Fatalf("Must provide following command line arguments. go run . <bootstrap-config-file-path>")
+	flag.StringVar(&httpPort, "http-port", "8080", "")
+	flag.StringVar(&grpcPort, "grpc-port", "8081", "")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
+		fmt.Fprintln(os.Stderr, "Options:")
+		flag.PrintDefaults() // Print default values for each flag
 	}
 
-	nodeBootstrapConfig, err := configuration.LoadNodeBootstrapConfigFromFile(args[1])
-
-	if err != nil {
-		log.Fatalf("could not load bootstrap config file %v", err)
-	}
+	flag.Parse()
 
 	thisNodeConfig := &configuration.NodeConfig{
 		ID:        nodeID,
-		Address:   "localhost:" + nodeBootstrapConfig.GrpcPort,
-		HashSlots: nodeBootstrapConfig.HashSlots,
+		Address:   "localhost:" + grpcPort,
+		HashSlots: []int{0, 16838},
 	}
 
 	var clusterConfig *configuration.ClusterConfig
 
 	grpcClientManager := rpc.NewGrpcClientManager()
 
-	// if the seed node addresses is 0, then that means this node is a seed node
-	if len(nodeBootstrapConfig.SeedNodeAddresses) > 0 {
-		// TODO randomize seed node selection
-		seedNodeRpcClient, err := grpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
-			Address: nodeBootstrapConfig.SeedNodeAddresses[0],
-		})
-
-		if err != nil {
-			log.Fatalf("failed to initialize rpc client for seed node with address %s", nodeBootstrapConfig.SeedNodeAddresses[0])
-		}
-
-		gossipClient := gossip.NewGossipClient(&gossip.GossipClientConfig{
-			ThisNode:  thisNodeConfig,
-			RpcClient: seedNodeRpcClient,
-		})
-
-		otherNodes, err := gossipClient.Gossip()
-
-		if err != nil {
-			log.Fatal("failed to gossip with seed node")
-		}
-
-		clusterConfig = &configuration.ClusterConfig{
-			ThisNode:   thisNodeConfig,
-			OtherNodes: otherNodes,
-		}
-
-		configuration.SetClusterConfig(clusterConfig)
-
-		go func() {
-			for range time.NewTicker(time.Second * 5).C {
-				otherNodes, err := gossipClient.Gossip()
-
-				if err != nil {
-					log.Fatal("failed to gossip with seed node")
-				}
-
-				clusterConfig = &configuration.ClusterConfig{
-					ThisNode:   thisNodeConfig,
-					OtherNodes: otherNodes,
-				}
-
-				configuration.SetClusterConfig(clusterConfig)
-
-			}
-		}()
-	} else {
-		clusterConfig = &configuration.ClusterConfig{
-			ThisNode:   thisNodeConfig,
-			OtherNodes: make([]*configuration.NodeConfig, 0),
-		}
-
-		configuration.SetClusterConfig(clusterConfig)
+	clusterConfig = &configuration.ClusterConfig{
+		ThisNode:   thisNodeConfig,
+		OtherNodes: make([]*configuration.NodeConfig, 0),
 	}
+
+	configuration.SetClusterConfig(clusterConfig)
 
 	// initialize rpc clients
 	for i := range clusterConfig.OtherNodes {
@@ -117,35 +73,37 @@ func main() {
 		})
 	}
 
-	if err != nil {
-		log.Fatalf("failed to load node bootstrap config file %v", err)
-	}
+	gossiper := gossip.NewGossipClient(&gossip.GossipClientConfig{
+		RpcClientManager: grpcClientManager,
+	})
+
+	gossiper.Gossip()
 
 	localStore := store.InitializeLocalKeyValueStore()
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{
-			Address:          ":" + nodeBootstrapConfig.HttpPort,
+			Address:          ":" + httpPort,
 			ClusterConfig:    clusterConfig,
 			RpcClientManager: grpcClientManager,
 		},
 	)
 
 	go func() {
-		log.Printf("HTTP server running on port %s", nodeBootstrapConfig.HttpPort)
+		log.Printf("HTTP server running on port %s", httpPort)
 
 		if err := httpServer.ListenAndServe(); err != nil {
 			log.Fatalf("failed to start http server %v", err)
 		}
 	}()
 
-	list, err := net.Listen("tcp", ":"+nodeBootstrapConfig.GrpcPort)
+	list, err := net.Listen("tcp", ":"+grpcPort)
 
 	if err != nil {
 		log.Fatalf("failed to start grpc server %v", err)
 	}
 
-	log.Printf("GRPC server runnnig on port %s", nodeBootstrapConfig.GrpcPort)
+	log.Printf("GRPC server runnnig on port %s", grpcPort)
 
 	grpcServer := rpc.NewRpcServer(localStore, grpcClientManager)
 

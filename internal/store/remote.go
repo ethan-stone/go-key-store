@@ -41,7 +41,7 @@ func (store *RemoteKeyValueStore) Put(key string, val string) error {
 	}
 
 	if !r.GetOk() {
-		return fmt.Errorf("could put key \"%s\"", key)
+		return fmt.Errorf("could not put key \"%s\"", key)
 	}
 
 	return nil

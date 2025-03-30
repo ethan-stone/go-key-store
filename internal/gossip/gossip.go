@@ -2,55 +2,110 @@ package gossip
 
 import (
 	"log"
+	"math/rand"
+	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
 )
 
 type GossipClient struct {
-	rpcClient rpc.RpcClient             // the client to the node to gossip with
-	thisNode  *configuration.NodeConfig // the config of the current node
+	rpcClientManager rpc.RpcClientManager
 }
 
-func (gossipClient *GossipClient) Gossip() ([]*configuration.NodeConfig, error) {
-	r, err := gossipClient.rpcClient.Gossip(
-		&rpc.GossipRequest{
-			NodeId:         gossipClient.thisNode.ID,
-			Address:        gossipClient.thisNode.Address,
-			HashSlotsStart: uint32(gossipClient.thisNode.HashSlots[0]),
-			HashSlotsEnd:   uint32(gossipClient.thisNode.HashSlots[1]),
-		},
-	)
+func (gossipClient *GossipClient) Gossip() {
+	go func() {
+		for range time.NewTicker(time.Second * 5).C {
+			// pick 3 random nodes from the cluster config and gossip.
+			// just in case, only try to generate 3 random indexes 6 times to not get stuck
 
-	if err != nil {
-		log.Printf("Failed to gossip with node %s", gossipClient.rpcClient.GetAddress())
-		return nil, err
-	}
+			clusterConfig, err := configuration.GetClusterConfig()
 
-	otherNodes := []*configuration.NodeConfig{}
+			if err != nil {
+				continue
+			}
 
-	for i := range r.OtherNodes {
-		otherNode := r.OtherNodes[i]
-		otherNodes = append(otherNodes, &configuration.NodeConfig{
-			ID:        otherNode.GetNodeId(),
-			Address:   otherNode.GetAddress(),
-			HashSlots: []int{int(otherNode.GetHashSlotsStart()), int(otherNode.GetHashSlotsEnd())},
-		})
-	}
+			seenIndexes := make(map[int]bool)
 
-	log.Printf("Successfully gossipped with node %s", gossipClient.rpcClient.GetAddress())
+			if len(clusterConfig.OtherNodes) == 0 {
+				log.Println("No OtherNodes configured. Skipping...")
+				continue
+			}
 
-	return otherNodes, nil
+			for range 6 {
+				idx := rand.Intn(len(clusterConfig.OtherNodes))
+
+				_, ok := seenIndexes[idx]
+
+				// we've seen this index before so try again.
+				if ok {
+					continue
+				}
+
+				seenIndexes[idx] = true
+
+				if len(seenIndexes) == 3 {
+					break
+				}
+			}
+
+			otherNodes := []*configuration.NodeConfig{}
+
+			for j := range clusterConfig.OtherNodes {
+				// is this index of the OtherNodes array in the set of the indexes we randomly generated?
+
+				_, ok := seenIndexes[j]
+
+				if !ok {
+					continue
+				}
+
+				otherNode := clusterConfig.OtherNodes[j]
+
+				client, err := gossipClient.rpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{Address: otherNode.Address})
+
+				if err != nil {
+					continue
+				}
+
+				r, err := client.Gossip(&rpc.GossipRequest{
+					NodeId:         clusterConfig.ThisNode.ID,
+					Address:        clusterConfig.ThisNode.Address,
+					HashSlotsStart: uint32(clusterConfig.ThisNode.HashSlots[0]),
+					HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
+				})
+
+				if err != nil {
+					log.Printf("Failed to gossip with node %s", client.GetAddress())
+					continue
+				}
+
+				for i := range r.OtherNodes {
+					otherNode := r.OtherNodes[i]
+					otherNodes = append(otherNodes, &configuration.NodeConfig{
+						ID:        otherNode.GetNodeId(),
+						Address:   otherNode.GetAddress(),
+						HashSlots: []int{int(otherNode.GetHashSlotsStart()), int(otherNode.GetHashSlotsEnd())},
+					})
+				}
+
+				log.Printf("Successfully gossipped with node %s", client.GetAddress())
+			}
+
+			configuration.SetClusterConfig(&configuration.ClusterConfig{
+				ThisNode:   clusterConfig.ThisNode,
+				OtherNodes: otherNodes,
+			})
+		}
+	}()
 }
 
 type GossipClientConfig struct {
-	RpcClient rpc.RpcClient
-	ThisNode  *configuration.NodeConfig
+	RpcClientManager rpc.RpcClientManager
 }
 
 func NewGossipClient(config *GossipClientConfig) *GossipClient {
 	return &GossipClient{
-		rpcClient: config.RpcClient,
-		thisNode:  config.ThisNode,
+		rpcClientManager: config.RpcClientManager,
 	}
 }

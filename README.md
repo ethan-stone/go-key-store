@@ -1,6 +1,6 @@
 # Overview
 
-This repo is an attempt to many of the concepts related to distributed systems.
+This repo is an attempt to learn many of the concepts related to distributed systems.
 
 # Todo
 
@@ -11,6 +11,10 @@ This repo is an attempt to many of the concepts related to distributed systems.
 - [x] Route requests to correct node for hash slot.
 - [x] Consider making a "KeyValueStoreFactory" that can get either a "LocalKeyValueStore" or a "RemoteKeyValueStore". Local means the data is stored on this node, while Remote means it's stored on a different node. \*Update definitely need to do this. The local store needs to be decoupled from RPC, because the RPC server side is going to need to reference the local store. Otherwise we'd have a circular module dependency.
 - [ ] Unit tests of existing functionality.
+- [ ] Be able to run node with no configuration. All requests are simply stored locally.
+- [ ] CLI to help with cluster configuration.
+  - [ ] Specify addresses of nodes. These nodes need to be running. Generate a suggested config, then configure all the nodes with suggested config.
+  - [ ] Resharding a cluster. Specify the number of hashslots to reshard, and the destination node. The node needs to be a part of the cluster.
 - [ ] Gossip-based membership and health check.
   - [x] Update to use a config file per node. For now each config file should have all other nodes.
   - [x] Add seed nodes to config file of nodes.
@@ -18,6 +22,7 @@ This repo is an attempt to many of the concepts related to distributed systems.
   - [ ] Implement gossip with seed nodes. When a new node starts, it reaches out to a random seed node. The seed node adds the new node to it's membership list, and returns the membership list with it's configuration to the new node. Now the new node has knowledge of all other nodes.
 - [ ] Automatic assigning of hash slots.
 - [ ] How to gracefully handle nodes going down?
+  - [ ] Remove from cluster config and stop pinging and gossiping.
 - [x] Better error handling for internal errors vs. a key just not being found. Right now any error is handled as a not found in the http api.
 
 # Building GRPC Code
