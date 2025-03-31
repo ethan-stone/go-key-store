@@ -58,10 +58,37 @@ message GossipResponse {
     repeated NodeConfig other_nodes = 2;
 }
 
+message SetClusterConfigRequest {
+    repeated NodeConfig other_nodes = 1;
+}
+
+message SetClusterConfigResponse {
+    bool ok = 1;
+}
+
+message GetNodeConfigRequest {
+}
+
+message GetNodeConfigResponse {
+    bool ok = 1;
+    NodeConfig node_config = 2;
+}
+
+message SetNodeConfigRequest {
+    NodeConfig node_config = 1;
+}
+
+message SetNodeConfigResponse {
+    bool ok = 1;
+}
+
 service StoreService {
     rpc Ping(PingRequest) returns (PingResponse) {} 
     rpc Get(GetRequest) returns (GetResponse) {}
     rpc Put(PutRequest) returns (PutResponse) {}
     rpc Delete(DeleteRequest) returns (DeleteResponse) {}
     rpc Gossip(GossipRequest) returns (GossipResponse) {}
+    rpc SetClusterConfig(SetClusterConfigRequest) returns (SetClusterConfigResponse) {}
+    rpc GetNodeConfig(GetNodeConfigRequest) returns (GetNodeConfigResponse) {}
+    rpc SetNodeConfig(SetNodeConfigRequest) returns (SetNodeConfigResponse) {}
 }

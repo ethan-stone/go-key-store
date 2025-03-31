@@ -73,7 +73,7 @@ func (s *RpcServer) Delete(_ context.Context, req *DeleteRequest) (*DeleteRespon
 }
 
 func (s *RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipResponse, error) {
-	log.Printf("Received gossip request from node %s", req.GetNodeId())
+	log.Printf("Received Gossip request from node %s", req.GetNodeId())
 
 	clusterConfig, err := configuration.GetClusterConfig()
 
@@ -120,6 +120,80 @@ func (s *RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipRespon
 	return &GossipResponse{
 		OtherNodes: otherNodes,
 		Ok:         true,
+	}, nil
+}
+
+func (s *RpcServer) SetClusterConfig(_ context.Context, req *SetClusterConfigRequest) (*SetClusterConfigResponse, error) {
+	log.Println("Received SetClusterConfig request")
+
+	clusterConfig, err := configuration.GetClusterConfig()
+
+	if err != nil {
+		return nil, err
+	}
+
+	otherNodes := []*configuration.NodeConfig{}
+
+	for i := range req.OtherNodes {
+		otherNode := req.OtherNodes[i]
+
+		otherNodes = append(otherNodes, &configuration.NodeConfig{
+			ID:        otherNode.NodeId,
+			Address:   otherNode.Address,
+			HashSlots: []int{int(otherNode.HashSlotsStart), int(otherNode.HashSlotsEnd)},
+		})
+	}
+
+	configuration.SetClusterConfig(&configuration.ClusterConfig{
+		ThisNode:   clusterConfig.ThisNode,
+		OtherNodes: otherNodes,
+	})
+
+	return &SetClusterConfigResponse{
+		Ok: true,
+	}, nil
+}
+
+func (s *RpcServer) GetNodeConfig(_ context.Context, req *GetNodeConfigRequest) (*GetNodeConfigResponse, error) {
+	log.Println("Received GetNodeConfig request")
+
+	clusterConfig, err := configuration.GetClusterConfig()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &GetNodeConfigResponse{
+		Ok: true,
+		NodeConfig: &NodeConfig{
+			NodeId:         clusterConfig.ThisNode.ID,
+			Address:        clusterConfig.ThisNode.Address,
+			HashSlotsStart: uint32(clusterConfig.ThisNode.HashSlots[0]),
+			HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
+		},
+	}, nil
+}
+
+func (s *RpcServer) SetNodeConfig(_ context.Context, req *SetNodeConfigRequest) (*SetNodeConfigResponse, error) {
+	log.Println("Received SetClusterConfig request")
+
+	clusterConfig, err := configuration.GetClusterConfig()
+
+	if err != nil {
+		return nil, err
+	}
+
+	configuration.SetClusterConfig(&configuration.ClusterConfig{
+		ThisNode: &configuration.NodeConfig{
+			ID:        clusterConfig.ThisNode.ID,
+			Address:   clusterConfig.ThisNode.Address,
+			HashSlots: []int{int(req.GetNodeConfig().GetHashSlotsStart()), int(req.GetNodeConfig().GetHashSlotsEnd())},
+		},
+		OtherNodes: clusterConfig.OtherNodes,
+	})
+
+	return &SetNodeConfigResponse{
+		Ok: true,
 	}, nil
 }
 

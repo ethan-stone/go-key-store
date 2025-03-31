@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/google/uuid"
@@ -22,7 +23,7 @@ type ClusterConfig struct {
 }
 
 type NodeConfig struct {
-	ID        string
+	ID        string `json:"id"`
 	Address   string `json:"address"`
 	HashSlots []int  `json:"hashSlots"` // first element is the start of the range, second element is the end of the range.
 }
@@ -49,6 +50,15 @@ func SetClusterConfig(config *ClusterConfig) {
 
 	config.OtherNodes = filteredNodes
 	clusterConfig = config
+
+	// Log the new cluster config in JSON format
+	jsonConfig, err := json.Marshal(clusterConfig)
+	if err != nil {
+		log.Printf("Error marshaling cluster config to JSON: %v", err) // use log instead of fmt
+		return                                                         // Important: Exit the function to prevent further errors
+	}
+
+	log.Printf("New cluster config: %s", jsonConfig) // use log instead of fmt to follow conventions.
 }
 
 func GetClusterConfig() (*ClusterConfig, error) {

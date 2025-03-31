@@ -16,6 +16,9 @@ type RpcClient interface {
 	Delete(key string) (*DeleteResponse, error)
 	Gossip(req *GossipRequest) (*GossipResponse, error)
 	GetAddress() string
+	SetClusterConfig(req *SetClusterConfigRequest) (*SetClusterConfigResponse, error)
+	GetNodeConfig(req *GetNodeConfigRequest) (*GetNodeConfigResponse, error)
+	SetNodeConfig(req *SetNodeConfigRequest) (*SetNodeConfigResponse, error)
 }
 
 type GrpcClient struct {
@@ -33,11 +36,21 @@ func NewRpcClient(address string, opts grpc.DialOption) (*GrpcClient, error) {
 
 	client := NewStoreServiceClient(conn)
 
-	return &GrpcClient{
+	grpcClient := &GrpcClient{
 		conn:    conn,
 		client:  client,
 		Address: address,
-	}, nil
+	}
+
+	// the tcp connection is actually only started when the first rpc call is made
+	// so we send a ping here to make sure it actually can connect as early as possible
+	pingResponse, err := grpcClient.Ping()
+
+	if err != nil || !pingResponse {
+		return nil, err
+	}
+
+	return grpcClient, nil
 }
 
 func (rpcClient *GrpcClient) GetAddress() string {
@@ -129,6 +142,54 @@ func (rpcClient *GrpcClient) Gossip(req *GossipRequest) (*GossipResponse, error)
 	return r, nil
 }
 
+func (rpcClient *GrpcClient) SetClusterConfig(req *SetClusterConfigRequest) (*SetClusterConfigResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	r, err := rpcClient.client.SetClusterConfig(ctx, req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("SetClusterConfig result ok = %t", r.GetOk())
+
+	return r, nil
+}
+
+func (rpcClient *GrpcClient) GetNodeConfig(req *GetNodeConfigRequest) (*GetNodeConfigResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	r, err := rpcClient.client.GetNodeConfig(ctx, req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("GetNodeConfig result ok = %t", r.GetOk())
+
+	return r, nil
+}
+
+func (rpcClient *GrpcClient) SetNodeConfig(req *SetNodeConfigRequest) (*SetNodeConfigResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+
+	defer cancel()
+
+	r, err := rpcClient.client.SetNodeConfig(ctx, req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("SetNodeConfig result ok = %t", r.GetOk())
+
+	return r, nil
+}
+
 type RpcClientConfig struct {
 	Address string
 }
@@ -159,7 +220,6 @@ func (rpcClientManager *GrpcClientManager) GetOrCreateRpcClient(config *RpcClien
 	if err != nil {
 		return nil, err
 	}
-
 	rpcClientManager.rpcClients[config.Address] = newClient
 
 	go func() {

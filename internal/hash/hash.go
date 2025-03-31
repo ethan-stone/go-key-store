@@ -1,6 +1,8 @@
 package hash
 
-import "hash/crc32"
+import (
+	"hash/crc32"
+)
 
 const numHashSlots = 16384
 
@@ -10,4 +12,23 @@ func GetHashSlot(key string) uint32 {
 	hashSlot := crc32Value % numHashSlots
 
 	return hashSlot
+}
+
+func CalculateHashSlotRanges(numNodes int, numSlots int) map[int][]int {
+	ranges := make(map[int][]int)
+	slotsPerNode := numSlots / numNodes
+	remainder := numSlots % numNodes
+
+	start := 0
+	for i := 1; i <= numNodes; i++ {
+		end := start + slotsPerNode - 1
+		if remainder > 0 {
+			end++
+			remainder--
+		}
+		ranges[i] = []int{start, end}
+		start = end + 1
+	}
+
+	return ranges
 }

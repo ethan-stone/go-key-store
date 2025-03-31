@@ -54,9 +54,11 @@ func main() {
 
 	grpcClientManager := rpc.NewGrpcClientManager()
 
+	otherNodes := []*configuration.NodeConfig{}
+
 	clusterConfig = &configuration.ClusterConfig{
 		ThisNode:   thisNodeConfig,
-		OtherNodes: make([]*configuration.NodeConfig, 0),
+		OtherNodes: otherNodes,
 	}
 
 	configuration.SetClusterConfig(clusterConfig)
