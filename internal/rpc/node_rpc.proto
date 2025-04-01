@@ -58,8 +58,13 @@ message GossipResponse {
     repeated NodeConfig other_nodes = 2;
 }
 
+message SetNodeConfigOptions  {
+    uint32 hash_slots_start = 1;
+    uint32 hash_slots_end = 2;
+}
+
 message SetClusterConfigRequest {
-    NodeConfig this_node = 1;
+    SetNodeConfigOptions this_node = 1;
     repeated NodeConfig other_nodes = 2;
 }
 
@@ -91,5 +96,4 @@ service StoreService {
     rpc Gossip(GossipRequest) returns (GossipResponse) {}
     rpc SetClusterConfig(SetClusterConfigRequest) returns (SetClusterConfigResponse) {}
     rpc GetNodeConfig(GetNodeConfigRequest) returns (GetNodeConfigResponse) {}
-    rpc SetNodeConfig(SetNodeConfigRequest) returns (SetNodeConfigResponse) {}
 }

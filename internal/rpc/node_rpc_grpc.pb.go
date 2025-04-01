@@ -26,7 +26,6 @@ const (
 	StoreService_Gossip_FullMethodName           = "/node_rpc.StoreService/Gossip"
 	StoreService_SetClusterConfig_FullMethodName = "/node_rpc.StoreService/SetClusterConfig"
 	StoreService_GetNodeConfig_FullMethodName    = "/node_rpc.StoreService/GetNodeConfig"
-	StoreService_SetNodeConfig_FullMethodName    = "/node_rpc.StoreService/SetNodeConfig"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -40,7 +39,6 @@ type StoreServiceClient interface {
 	Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error)
 	SetClusterConfig(ctx context.Context, in *SetClusterConfigRequest, opts ...grpc.CallOption) (*SetClusterConfigResponse, error)
 	GetNodeConfig(ctx context.Context, in *GetNodeConfigRequest, opts ...grpc.CallOption) (*GetNodeConfigResponse, error)
-	SetNodeConfig(ctx context.Context, in *SetNodeConfigRequest, opts ...grpc.CallOption) (*SetNodeConfigResponse, error)
 }
 
 type storeServiceClient struct {
@@ -121,16 +119,6 @@ func (c *storeServiceClient) GetNodeConfig(ctx context.Context, in *GetNodeConfi
 	return out, nil
 }
 
-func (c *storeServiceClient) SetNodeConfig(ctx context.Context, in *SetNodeConfigRequest, opts ...grpc.CallOption) (*SetNodeConfigResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SetNodeConfigResponse)
-	err := c.cc.Invoke(ctx, StoreService_SetNodeConfig_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -142,7 +130,6 @@ type StoreServiceServer interface {
 	Gossip(context.Context, *GossipRequest) (*GossipResponse, error)
 	SetClusterConfig(context.Context, *SetClusterConfigRequest) (*SetClusterConfigResponse, error)
 	GetNodeConfig(context.Context, *GetNodeConfigRequest) (*GetNodeConfigResponse, error)
-	SetNodeConfig(context.Context, *SetNodeConfigRequest) (*SetNodeConfigResponse, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -173,9 +160,6 @@ func (UnimplementedStoreServiceServer) SetClusterConfig(context.Context, *SetClu
 }
 func (UnimplementedStoreServiceServer) GetNodeConfig(context.Context, *GetNodeConfigRequest) (*GetNodeConfigResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNodeConfig not implemented")
-}
-func (UnimplementedStoreServiceServer) SetNodeConfig(context.Context, *SetNodeConfigRequest) (*SetNodeConfigResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetNodeConfig not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -324,24 +308,6 @@ func _StoreService_GetNodeConfig_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _StoreService_SetNodeConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetNodeConfigRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(StoreServiceServer).SetNodeConfig(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: StoreService_SetNodeConfig_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StoreServiceServer).SetNodeConfig(ctx, req.(*SetNodeConfigRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -376,10 +342,6 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetNodeConfig",
 			Handler:    _StoreService_GetNodeConfig_Handler,
-		},
-		{
-			MethodName: "SetNodeConfig",
-			Handler:    _StoreService_SetNodeConfig_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

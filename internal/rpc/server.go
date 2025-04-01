@@ -138,7 +138,11 @@ func (s *RpcServer) SetClusterConfig(_ context.Context, req *SetClusterConfigReq
 	}
 
 	s.configManager.SetClusterConfig(&configuration.ClusterConfig{
-		ThisNode:   clusterConfig.ThisNode,
+		ThisNode: &configuration.NodeConfig{
+			ID:        clusterConfig.ThisNode.ID,
+			Address:   clusterConfig.ThisNode.Address,
+			HashSlots: []int{int(req.GetThisNode().GetHashSlotsStart()), int(req.GetThisNode().GetHashSlotsEnd())},
+		},
 		OtherNodes: otherNodes,
 	})
 
@@ -182,12 +186,13 @@ func (s *RpcServer) SetNodeConfig(_ context.Context, req *SetNodeConfigRequest) 
 	}, nil
 }
 
-func NewRpcServer(storeService service.StoreService, rpcClientManager RpcClientManager) *grpc.Server {
+func NewRpcServer(storeService service.StoreService, configManager configuration.ConfigurationManager, rpcClientManager RpcClientManager) *grpc.Server {
 	grpcServer := grpc.NewServer()
 
 	RegisterStoreServiceServer(grpcServer, &RpcServer{
 		storeService:     storeService,
 		rpcClientManager: rpcClientManager,
+		configManager:    configManager,
 	})
 
 	return grpcServer

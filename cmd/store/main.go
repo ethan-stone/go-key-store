@@ -108,7 +108,7 @@ func main() {
 
 	log.Printf("GRPC server runnnig on port %s", grpcPort)
 
-	grpcServer := rpc.NewRpcServer(localStore, grpcClientManager)
+	grpcServer := rpc.NewRpcServer(localStore, configurationManager, grpcClientManager)
 
 	if err := grpcServer.Serve(list); err != nil {
 		log.Fatalf("failed to start grpc server %v", err)

@@ -78,10 +78,11 @@ var CreateClusterCommand = &cobra.Command{
 			}
 
 			client.SetClusterConfig(&rpc.SetClusterConfigRequest{
+				ThisNode: &rpc.SetNodeConfigOptions{
+					HashSlotsStart: node.HashSlotsStart,
+					HashSlotsEnd:   node.HashSlotsEnd,
+				},
 				OtherNodes: nodes,
-			})
-			client.SetNodeConfig(&rpc.SetNodeConfigRequest{
-				NodeConfig: node,
 			})
 		}
 

@@ -31,8 +31,6 @@ func GenerateNodeID() string {
 	return uuid.New().String()
 }
 
-var clusterConfig *ClusterConfig
-
 type ConfigurationManager interface {
 	SetClusterConfig(config *ClusterConfig)
 	GetClusterConfig() *ClusterConfig
@@ -60,7 +58,7 @@ func (cm *BaseConfigurationManager) SetClusterConfig(config *ClusterConfig) {
 	cm.clusterConfig = config
 
 	// Log the new cluster config in JSON format
-	jsonConfig, err := json.Marshal(clusterConfig)
+	jsonConfig, err := json.Marshal(cm.clusterConfig)
 	if err != nil {
 		log.Printf("Error marshaling cluster config to JSON: %v", err) // use log instead of fmt
 		return                                                         // Important: Exit the function to prevent further errors

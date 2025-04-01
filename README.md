@@ -10,11 +10,11 @@ This repo is an attempt to learn many of the concepts related to distributed sys
 - [x] Assign hash slots to nodes manually for now.
 - [x] Route requests to correct node for hash slot.
 - [x] Consider making a "KeyValueStoreFactory" that can get either a "LocalKeyValueStore" or a "RemoteKeyValueStore". Local means the data is stored on this node, while Remote means it's stored on a different node. \*Update definitely need to do this. The local store needs to be decoupled from RPC, because the RPC server side is going to need to reference the local store. Otherwise we'd have a circular module dependency.
-- [ ] Need to handle set and retrieving cluster config better. There are dangling pointers everywhere. Probably need to use a "configurationManager" much like "rpcClientManager"
+- [x] Need to handle set and retrieving cluster config better. There are dangling pointers everywhere. Probably need to use a "configurationManager" much like "rpcClientManager"
 - [ ] Unit tests of existing functionality.
 - [x] Be able to run node with no configuration. All requests are simply stored locally.
 - [ ] Abstract GRPC errors away
-      [ ] CLI to help with cluster configuration.
+- [ ] CLI to help with cluster configuration.
   - [ ] "go-store cluster create <list of addresses>" Specify addresses of nodes. These nodes need to be running. Generate a suggested config, then configure all the nodes with suggested config.
     - [ ] check if any of the nodes are already in a cluster, and if so don't proceed with cluster config.
   - [ ] "go-store cluster reshard". Resharding a cluster. Specify the number of hashslots to reshard, and the destination node. The node needs to be a part of the cluster.

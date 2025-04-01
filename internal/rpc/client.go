@@ -18,7 +18,6 @@ type RpcClient interface {
 	GetAddress() string
 	SetClusterConfig(req *SetClusterConfigRequest) (*SetClusterConfigResponse, error)
 	GetNodeConfig(req *GetNodeConfigRequest) (*GetNodeConfigResponse, error)
-	SetNodeConfig(req *SetNodeConfigRequest) (*SetNodeConfigResponse, error)
 }
 
 type GrpcClient struct {
@@ -170,22 +169,6 @@ func (rpcClient *GrpcClient) GetNodeConfig(req *GetNodeConfigRequest) (*GetNodeC
 	}
 
 	log.Printf("GetNodeConfig result ok = %t", r.GetOk())
-
-	return r, nil
-}
-
-func (rpcClient *GrpcClient) SetNodeConfig(req *SetNodeConfigRequest) (*SetNodeConfigResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-
-	defer cancel()
-
-	r, err := rpcClient.client.SetNodeConfig(ctx, req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("SetNodeConfig result ok = %t", r.GetOk())
 
 	return r, nil
 }

@@ -1,14 +1,19 @@
 {
   "ThisNode": {
-    "id": "20366f66-edee-453d-b981-9c2acd2ca16a",
-    "address": "localhost:8081",
-    "hashSlots": [0, 8191]
+    "id": "341afb59-eb33-494a-a450-54dd4afe1640",
+    "address": "localhost:8083",
+    "hashSlots": [5462, 10922]
   },
   "OtherNodes": [
     {
-      "id": "55850970-e921-481a-8ece-6aebd57288ca",
-      "address": "localhost:8083",
-      "hashSlots": [8192, 16383]
+      "id": "176557e3-cf89-4371-bbd4-9f22cb1c38a2",
+      "address": "localhost:8081",
+      "hashSlots": [0, 5461]
+    },
+    {
+      "id": "56787301-38fe-4647-8bfa-0e22ec78ec5d",
+      "address": "localhost:8085",
+      "hashSlots": [10923, 16383]
     }
   ]
 }
