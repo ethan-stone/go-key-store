@@ -59,7 +59,8 @@ message GossipResponse {
 }
 
 message SetClusterConfigRequest {
-    repeated NodeConfig other_nodes = 1;
+    NodeConfig this_node = 1;
+    repeated NodeConfig other_nodes = 2;
 }
 
 message SetClusterConfigResponse {

@@ -11,6 +11,7 @@ import (
 
 type GossipClient struct {
 	rpcClientManager rpc.RpcClientManager
+	configManager    configuration.ConfigurationManager
 }
 
 func (gossipClient *GossipClient) Gossip() {
@@ -19,11 +20,7 @@ func (gossipClient *GossipClient) Gossip() {
 			// pick 3 random nodes from the cluster config and gossip.
 			// just in case, only try to generate 3 random indexes 6 times to not get stuck
 
-			clusterConfig, err := configuration.GetClusterConfig()
-
-			if err != nil {
-				continue
-			}
+			clusterConfig := gossipClient.configManager.GetClusterConfig()
 
 			seenIndexes := make(map[int]bool)
 
@@ -92,7 +89,7 @@ func (gossipClient *GossipClient) Gossip() {
 				log.Printf("Successfully gossipped with node %s", client.GetAddress())
 			}
 
-			configuration.SetClusterConfig(&configuration.ClusterConfig{
+			gossipClient.configManager.SetClusterConfig(&configuration.ClusterConfig{
 				ThisNode:   clusterConfig.ThisNode,
 				OtherNodes: otherNodes,
 			})
@@ -102,10 +99,12 @@ func (gossipClient *GossipClient) Gossip() {
 
 type GossipClientConfig struct {
 	RpcClientManager rpc.RpcClientManager
+	ConfigManager    configuration.ConfigurationManager
 }
 
 func NewGossipClient(config *GossipClientConfig) *GossipClient {
 	return &GossipClient{
 		rpcClientManager: config.RpcClientManager,
+		configManager:    config.ConfigManager,
 	}
 }

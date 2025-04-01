@@ -2,7 +2,6 @@ package configuration
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -34,7 +33,16 @@ func GenerateNodeID() string {
 
 var clusterConfig *ClusterConfig
 
-func SetClusterConfig(config *ClusterConfig) {
+type ConfigurationManager interface {
+	SetClusterConfig(config *ClusterConfig)
+	GetClusterConfig() *ClusterConfig
+}
+
+type BaseConfigurationManager struct {
+	clusterConfig *ClusterConfig
+}
+
+func (cm *BaseConfigurationManager) SetClusterConfig(config *ClusterConfig) {
 	filteredNodes := []*NodeConfig{}
 	seenIDs := make(map[string]bool)
 
@@ -49,7 +57,7 @@ func SetClusterConfig(config *ClusterConfig) {
 	}
 
 	config.OtherNodes = filteredNodes
-	clusterConfig = config
+	cm.clusterConfig = config
 
 	// Log the new cluster config in JSON format
 	jsonConfig, err := json.Marshal(clusterConfig)
@@ -61,12 +69,14 @@ func SetClusterConfig(config *ClusterConfig) {
 	log.Printf("New cluster config: %s", jsonConfig) // use log instead of fmt to follow conventions.
 }
 
-func GetClusterConfig() (*ClusterConfig, error) {
-	if clusterConfig == nil {
-		return nil, fmt.Errorf("cluster config is not set")
-	}
+func (cm *BaseConfigurationManager) GetClusterConfig() *ClusterConfig {
+	return cm.clusterConfig
+}
 
-	return clusterConfig, nil
+func NewBaseConfigurationManager(initialConfig *ClusterConfig) *BaseConfigurationManager {
+	return &BaseConfigurationManager{
+		clusterConfig: initialConfig,
+	}
 }
 
 func LoadNodeBootstrapConfigFromFile(path string) (*NodeBootstrapConfig, error) {

@@ -19,16 +19,11 @@ type PutRequestBody struct {
 	Value string `json:"value"`
 }
 
-func getHandler(_ *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
+func getHandler(configManager configuration.ConfigurationManager, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		clusterConfig, err := configuration.GetClusterConfig()
-
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		clusterConfig := configManager.GetClusterConfig()
 
 		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
 
@@ -55,16 +50,11 @@ func getHandler(_ *configuration.ClusterConfig, rpcClientManager rpc.RpcClientMa
 	}
 }
 
-func putHandler(_ *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
+func putHandler(configManager configuration.ConfigurationManager, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		clusterConfig, err := configuration.GetClusterConfig()
-
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		clusterConfig := configManager.GetClusterConfig()
 
 		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
 
@@ -89,16 +79,11 @@ func putHandler(_ *configuration.ClusterConfig, rpcClientManager rpc.RpcClientMa
 	}
 }
 
-func deleteHandler(_ *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
+func deleteHandler(configManager configuration.ConfigurationManager, rpcClientManager rpc.RpcClientManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		clusterConfig, err := configuration.GetClusterConfig()
-
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		clusterConfig := configManager.GetClusterConfig()
 
 		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
 
@@ -116,16 +101,16 @@ func deleteHandler(_ *configuration.ClusterConfig, rpcClientManager rpc.RpcClien
 
 type HttpServerConfig struct {
 	Address          string
-	ClusterConfig    *configuration.ClusterConfig
+	ConfigManager    configuration.ConfigurationManager
 	RpcClientManager rpc.RpcClientManager
 }
 
 func NewHttpServer(config *HttpServerConfig) *http.Server {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /item/{key}", getHandler(config.ClusterConfig, config.RpcClientManager))
-	mux.HandleFunc("POST /item/{key}", putHandler(config.ClusterConfig, config.RpcClientManager))
-	mux.HandleFunc("DELETE /item/{key}", deleteHandler(config.ClusterConfig, config.RpcClientManager))
+	mux.HandleFunc("GET /item/{key}", getHandler(config.ConfigManager, config.RpcClientManager))
+	mux.HandleFunc("POST /item/{key}", putHandler(config.ConfigManager, config.RpcClientManager))
+	mux.HandleFunc("DELETE /item/{key}", deleteHandler(config.ConfigManager, config.RpcClientManager))
 
 	// this is the actual server
 	httpServer := &http.Server{

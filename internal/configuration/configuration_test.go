@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSetClusterConfig(t *testing.T) {
+func TestBaseConfigurationManager_SetClusterConfig(t *testing.T) {
 	node1 := &NodeConfig{ID: "node1", Address: "addr1", HashSlots: []int{1, 2}}
 	node2 := &NodeConfig{ID: "node2", Address: "addr2", HashSlots: []int{3, 4}}
 	node3 := &NodeConfig{ID: "node3", Address: "addr3", HashSlots: []int{5, 6}}
@@ -85,46 +85,40 @@ func TestSetClusterConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			SetClusterConfig(tt.inputConfig)
+			cm := NewBaseConfigurationManager(nil) // Initialize with nil or an initial config
+			cm.SetClusterConfig(tt.inputConfig)
 
-			config, _ := GetClusterConfig()
+			config := cm.GetClusterConfig()
 
 			if !reflect.DeepEqual(config, tt.expectedConfig) {
-				t.Errorf("SetClusterConfig() = %v, want %v", config, tt.expectedConfig)
+				t.Errorf("SetClusterConfig() = %v, want %v", config,
+					tt.expectedConfig)
 			}
-
-			// Reset clusterConfig for the next test.  Important!
-			clusterConfig = nil
 		})
 	}
 }
 
-func TestGetClusterConfig(t *testing.T) {
-	t.Run("Not Set", func(t *testing.T) {
-		clusterConfig = nil // Ensure it's nil before the test
-		_, err := GetClusterConfig()
-		if err == nil {
-			t.Errorf("GetClusterConfig() should return an error when not set")
-		}
-	})
-
+func TestBaseConfigurationManager_GetClusterConfig(t *testing.T) {
 	t.Run("Successfully Get", func(t *testing.T) {
 		expectedConfig := &ClusterConfig{
 			ThisNode:   &NodeConfig{ID: "test-node", Address: "test-address"},
 			OtherNodes: []*NodeConfig{},
 		}
-		SetClusterConfig(expectedConfig)
-		cfg, err := GetClusterConfig()
-
-		if err != nil {
-			t.Fatalf("GetClusterConfig() returned an error: %v", err)
-		}
+		cm := NewBaseConfigurationManager(expectedConfig)
+		cfg := cm.GetClusterConfig()
 
 		if !reflect.DeepEqual(cfg, expectedConfig) {
 			t.Errorf("GetClusterConfig() = %v, want %v", cfg, expectedConfig)
 		}
+	})
 
-		// Clean up for other tests
-		clusterConfig = nil
+	t.Run("Nil Config", func(t *testing.T) {
+		cm := NewBaseConfigurationManager(nil)
+		cfg := cm.GetClusterConfig()
+
+		if cfg != nil {
+			t.Errorf("GetClusterConfig() should return nil when not set, got %v",
+				cfg)
+		}
 	})
 }

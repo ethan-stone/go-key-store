@@ -61,7 +61,7 @@ func main() {
 		OtherNodes: otherNodes,
 	}
 
-	configuration.SetClusterConfig(clusterConfig)
+	configurationManager := configuration.NewBaseConfigurationManager(clusterConfig)
 
 	// initialize rpc clients
 	for i := range clusterConfig.OtherNodes {
@@ -77,6 +77,7 @@ func main() {
 
 	gossiper := gossip.NewGossipClient(&gossip.GossipClientConfig{
 		RpcClientManager: grpcClientManager,
+		ConfigManager:    configurationManager,
 	})
 
 	gossiper.Gossip()
@@ -86,7 +87,7 @@ func main() {
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{
 			Address:          ":" + httpPort,
-			ClusterConfig:    clusterConfig,
+			ConfigManager:    configurationManager,
 			RpcClientManager: grpcClientManager,
 		},
 	)

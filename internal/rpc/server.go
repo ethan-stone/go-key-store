@@ -13,6 +13,7 @@ type RpcServer struct {
 	UnimplementedStoreServiceServer
 	storeService     service.StoreService
 	rpcClientManager RpcClientManager
+	configManager    configuration.ConfigurationManager
 }
 
 func (s *RpcServer) Ping(_ context.Context, req *PingRequest) (*PingResponse, error) {
@@ -75,11 +76,7 @@ func (s *RpcServer) Delete(_ context.Context, req *DeleteRequest) (*DeleteRespon
 func (s *RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipResponse, error) {
 	log.Printf("Received Gossip request from node %s", req.GetNodeId())
 
-	clusterConfig, err := configuration.GetClusterConfig()
-
-	if err != nil {
-		return nil, err
-	}
+	clusterConfig := s.configManager.GetClusterConfig()
 
 	clusterConfig.OtherNodes = append(clusterConfig.OtherNodes, &configuration.NodeConfig{
 		ID:        req.GetNodeId(),
@@ -107,7 +104,7 @@ func (s *RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipRespon
 		HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
 	})
 
-	_, err = s.rpcClientManager.GetOrCreateRpcClient(&RpcClientConfig{
+	_, err := s.rpcClientManager.GetOrCreateRpcClient(&RpcClientConfig{
 		Address: req.GetAddress(),
 	})
 
@@ -115,7 +112,7 @@ func (s *RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipRespon
 		return nil, err
 	}
 
-	configuration.SetClusterConfig(clusterConfig)
+	s.configManager.SetClusterConfig(clusterConfig)
 
 	return &GossipResponse{
 		OtherNodes: otherNodes,
@@ -126,11 +123,7 @@ func (s *RpcServer) Gossip(_ context.Context, req *GossipRequest) (*GossipRespon
 func (s *RpcServer) SetClusterConfig(_ context.Context, req *SetClusterConfigRequest) (*SetClusterConfigResponse, error) {
 	log.Println("Received SetClusterConfig request")
 
-	clusterConfig, err := configuration.GetClusterConfig()
-
-	if err != nil {
-		return nil, err
-	}
+	clusterConfig := s.configManager.GetClusterConfig()
 
 	otherNodes := []*configuration.NodeConfig{}
 
@@ -144,7 +137,7 @@ func (s *RpcServer) SetClusterConfig(_ context.Context, req *SetClusterConfigReq
 		})
 	}
 
-	configuration.SetClusterConfig(&configuration.ClusterConfig{
+	s.configManager.SetClusterConfig(&configuration.ClusterConfig{
 		ThisNode:   clusterConfig.ThisNode,
 		OtherNodes: otherNodes,
 	})
@@ -157,11 +150,7 @@ func (s *RpcServer) SetClusterConfig(_ context.Context, req *SetClusterConfigReq
 func (s *RpcServer) GetNodeConfig(_ context.Context, req *GetNodeConfigRequest) (*GetNodeConfigResponse, error) {
 	log.Println("Received GetNodeConfig request")
 
-	clusterConfig, err := configuration.GetClusterConfig()
-
-	if err != nil {
-		return nil, err
-	}
+	clusterConfig := s.configManager.GetClusterConfig()
 
 	return &GetNodeConfigResponse{
 		Ok: true,
@@ -177,13 +166,9 @@ func (s *RpcServer) GetNodeConfig(_ context.Context, req *GetNodeConfigRequest) 
 func (s *RpcServer) SetNodeConfig(_ context.Context, req *SetNodeConfigRequest) (*SetNodeConfigResponse, error) {
 	log.Println("Received SetClusterConfig request")
 
-	clusterConfig, err := configuration.GetClusterConfig()
+	clusterConfig := s.configManager.GetClusterConfig()
 
-	if err != nil {
-		return nil, err
-	}
-
-	configuration.SetClusterConfig(&configuration.ClusterConfig{
+	s.configManager.SetClusterConfig(&configuration.ClusterConfig{
 		ThisNode: &configuration.NodeConfig{
 			ID:        clusterConfig.ThisNode.ID,
 			Address:   clusterConfig.ThisNode.Address,

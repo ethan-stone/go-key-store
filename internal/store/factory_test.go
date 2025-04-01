@@ -8,15 +8,19 @@ import (
 )
 
 type MockRpcClientManager struct {
-	MockGetOrCreateRpcClient func(config *rpc.RpcClientConfig) (rpc.RpcClient, error)
+	MockGetOrCreateRpcClient func(config *rpc.RpcClientConfig) (
+		rpc.RpcClient,
+		error,
+	)
 }
 
-func (m *MockRpcClientManager) GetOrCreateRpcClient(config *rpc.RpcClientConfig) (rpc.RpcClient, error) {
+func (m *MockRpcClientManager) GetOrCreateRpcClient(
+	config *rpc.RpcClientConfig,
+) (rpc.RpcClient, error) {
 	return m.MockGetOrCreateRpcClient(config)
 }
 
-type MockRpcClient struct {
-}
+type MockRpcClient struct{}
 
 func (m *MockRpcClient) Ping() (bool, error) {
 	return true, nil
@@ -38,7 +42,9 @@ func (m *MockRpcClient) Delete(key string) (*rpc.DeleteResponse, error) {
 		Ok: true,
 	}, nil
 }
-func (m *MockRpcClient) Gossip(req *rpc.GossipRequest) (*rpc.GossipResponse, error) {
+func (m *MockRpcClient) Gossip(
+	req *rpc.GossipRequest,
+) (*rpc.GossipResponse, error) {
 	return &rpc.GossipResponse{
 		Ok:         true,
 		OtherNodes: nil,
@@ -46,6 +52,24 @@ func (m *MockRpcClient) Gossip(req *rpc.GossipRequest) (*rpc.GossipResponse, err
 }
 func (m *MockRpcClient) GetAddress() string {
 	return "localhost:8081"
+}
+
+func (m *MockRpcClient) SetClusterConfig(
+	req *rpc.SetClusterConfigRequest,
+) (*rpc.SetClusterConfigResponse, error) {
+	return &rpc.SetClusterConfigResponse{Ok: true}, nil
+}
+
+func (m *MockRpcClient) GetNodeConfig(
+	req *rpc.GetNodeConfigRequest,
+) (*rpc.GetNodeConfigResponse, error) {
+	return &rpc.GetNodeConfigResponse{Ok: true}, nil
+}
+
+func (m *MockRpcClient) SetNodeConfig(
+	req *rpc.SetNodeConfigRequest,
+) (*rpc.SetNodeConfigResponse, error) {
+	return &rpc.SetNodeConfigResponse{Ok: true}, nil
 }
 
 // a hashes to slot 15939
@@ -85,7 +109,9 @@ func TestReturnsLocalStore(t *testing.T) {
 	}
 
 	mockRpcClientManager := &MockRpcClientManager{
-		MockGetOrCreateRpcClient: func(config *rpc.RpcClientConfig) (rpc.RpcClient, error) {
+		MockGetOrCreateRpcClient: func(
+			config *rpc.RpcClientConfig,
+		) (rpc.RpcClient, error) {
 			return &MockRpcClient{}, nil
 		},
 	}
@@ -117,7 +143,9 @@ func TestReturnsRemoteStore(t *testing.T) {
 	}
 
 	mockRpcClientManager := &MockRpcClientManager{
-		MockGetOrCreateRpcClient: func(config *rpc.RpcClientConfig) (rpc.RpcClient, error) {
+		MockGetOrCreateRpcClient: func(
+			config *rpc.RpcClientConfig,
+		) (rpc.RpcClient, error) {
 			return &MockRpcClient{}, nil
 		},
 	}
