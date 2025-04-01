@@ -151,6 +151,36 @@ func (s *RpcServer) SetClusterConfig(_ context.Context, req *SetClusterConfigReq
 	}, nil
 }
 
+func (s *RpcServer) GetClusterConfig(_ context.Context, req *GetClusterConfigRequest) (*GetClusterConfigResponse, error) {
+	log.Println("Received GetClusterConfig request")
+
+	clusterConfig := s.configManager.GetClusterConfig()
+
+	otherNodes := []*NodeConfig{}
+
+	for i := range clusterConfig.OtherNodes {
+		node := clusterConfig.OtherNodes[i]
+
+		otherNodes = append(otherNodes, &NodeConfig{
+			NodeId:         node.ID,
+			Address:        node.Address,
+			HashSlotsStart: uint32(node.HashSlots[0]),
+			HashSlotsEnd:   uint32(node.HashSlots[1]),
+		})
+	}
+
+	return &GetClusterConfigResponse{
+		Ok: true,
+		ThisNode: &NodeConfig{
+			NodeId:         clusterConfig.ThisNode.ID,
+			Address:        clusterConfig.ThisNode.Address,
+			HashSlotsStart: uint32(clusterConfig.ThisNode.HashSlots[0]),
+			HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
+		},
+		OtherNodes: otherNodes,
+	}, nil
+}
+
 func (s *RpcServer) GetNodeConfig(_ context.Context, req *GetNodeConfigRequest) (*GetNodeConfigResponse, error) {
 	log.Println("Received GetNodeConfig request")
 
@@ -164,25 +194,6 @@ func (s *RpcServer) GetNodeConfig(_ context.Context, req *GetNodeConfigRequest) 
 			HashSlotsStart: uint32(clusterConfig.ThisNode.HashSlots[0]),
 			HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
 		},
-	}, nil
-}
-
-func (s *RpcServer) SetNodeConfig(_ context.Context, req *SetNodeConfigRequest) (*SetNodeConfigResponse, error) {
-	log.Println("Received SetClusterConfig request")
-
-	clusterConfig := s.configManager.GetClusterConfig()
-
-	s.configManager.SetClusterConfig(&configuration.ClusterConfig{
-		ThisNode: &configuration.NodeConfig{
-			ID:        clusterConfig.ThisNode.ID,
-			Address:   clusterConfig.ThisNode.Address,
-			HashSlots: []int{int(req.GetNodeConfig().GetHashSlotsStart()), int(req.GetNodeConfig().GetHashSlotsEnd())},
-		},
-		OtherNodes: clusterConfig.OtherNodes,
-	})
-
-	return &SetNodeConfigResponse{
-		Ok: true,
 	}, nil
 }
 

@@ -60,16 +60,10 @@ func (m *MockRpcClient) SetClusterConfig(
 	return &rpc.SetClusterConfigResponse{Ok: true}, nil
 }
 
-func (m *MockRpcClient) GetNodeConfig(
-	req *rpc.GetNodeConfigRequest,
-) (*rpc.GetNodeConfigResponse, error) {
-	return &rpc.GetNodeConfigResponse{Ok: true}, nil
-}
-
-func (m *MockRpcClient) SetNodeConfig(
-	req *rpc.SetNodeConfigRequest,
-) (*rpc.SetNodeConfigResponse, error) {
-	return &rpc.SetNodeConfigResponse{Ok: true}, nil
+func (m *MockRpcClient) GetClusterConfig(
+	req *rpc.GetClusterConfigRequest,
+) (*rpc.GetClusterConfigResponse, error) {
+	return &rpc.GetClusterConfigResponse{Ok: true, OtherNodes: nil, ThisNode: nil}, nil
 }
 
 // a hashes to slot 15939

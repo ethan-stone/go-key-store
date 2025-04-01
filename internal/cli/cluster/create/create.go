@@ -48,10 +48,14 @@ var CreateClusterCommand = &cobra.Command{
 				return err
 			}
 
-			getNodeConfigResponse, err := client.GetNodeConfig(&rpc.GetNodeConfigRequest{})
+			getClusterConfigResponse, err := client.GetClusterConfig(&rpc.GetClusterConfigRequest{})
 
-			if err != nil || !getNodeConfigResponse.GetOk() {
+			if err != nil || !getClusterConfigResponse.GetOk() {
 				return err
+			}
+
+			if getClusterConfigResponse.GetOtherNodes() != nil && len(getClusterConfigResponse.GetOtherNodes()) > 0 {
+				return fmt.Errorf("node %s is already a part of a cluster", address)
 			}
 
 			hashSlotRange := hashSlotRanges[i+1]
@@ -59,8 +63,8 @@ var CreateClusterCommand = &cobra.Command{
 			// when creating a cluster it is assumed all the nodes are independently running
 			// nodes
 			nodes = append(nodes, &rpc.NodeConfig{
-				NodeId:         getNodeConfigResponse.GetNodeConfig().GetNodeId(),
-				Address:        getNodeConfigResponse.GetNodeConfig().GetAddress(),
+				NodeId:         getClusterConfigResponse.GetThisNode().GetNodeId(),
+				Address:        getClusterConfigResponse.GetThisNode().GetAddress(),
 				HashSlotsStart: uint32(hashSlotRange[0]),
 				HashSlotsEnd:   uint32(hashSlotRange[1]),
 			})

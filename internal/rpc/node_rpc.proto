@@ -72,20 +72,12 @@ message SetClusterConfigResponse {
     bool ok = 1;
 }
 
-message GetNodeConfigRequest {
-}
+message GetClusterConfigRequest {}
 
-message GetNodeConfigResponse {
+message GetClusterConfigResponse {
     bool ok = 1;
-    NodeConfig node_config = 2;
-}
-
-message SetNodeConfigRequest {
-    NodeConfig node_config = 1;
-}
-
-message SetNodeConfigResponse {
-    bool ok = 1;
+    NodeConfig this_node = 2;
+    repeated NodeConfig other_nodes = 3;
 }
 
 service StoreService {
@@ -95,5 +87,5 @@ service StoreService {
     rpc Delete(DeleteRequest) returns (DeleteResponse) {}
     rpc Gossip(GossipRequest) returns (GossipResponse) {}
     rpc SetClusterConfig(SetClusterConfigRequest) returns (SetClusterConfigResponse) {}
-    rpc GetNodeConfig(GetNodeConfigRequest) returns (GetNodeConfigResponse) {}
+    rpc GetClusterConfig (GetClusterConfigRequest) returns (GetClusterConfigResponse) {}
 }
