@@ -1,7 +1,10 @@
 package create_cluster
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/ethan-stone/go-key-store/internal/hash"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
@@ -14,8 +17,8 @@ var CreateClusterCommand = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// 1. [x] Attempt to establish connections to all nodes. Error if can't.
 		// 2. [x] Create suggested config. Divide hash slots evenly.
-		// 3. [] Ask for confirmation of config.
-		// 4. [] If yes, apply config.
+		// 3. [x] Ask for confirmation of config.
+		// 4. [x] If yes, apply config.
 
 		rpcClientManager := rpc.NewGrpcClientManager()
 
@@ -61,13 +64,25 @@ var CreateClusterCommand = &cobra.Command{
 			hashSlotRange := hashSlotRanges[i+1]
 
 			// when creating a cluster it is assumed all the nodes are independently running
-			// nodes
 			nodes = append(nodes, &rpc.NodeConfig{
 				NodeId:         getClusterConfigResponse.GetThisNode().GetNodeId(),
 				Address:        getClusterConfigResponse.GetThisNode().GetAddress(),
 				HashSlotsStart: uint32(hashSlotRange[0]),
 				HashSlotsEnd:   uint32(hashSlotRange[1]),
 			})
+		}
+
+		for i := range nodes {
+			node := nodes[i]
+
+			fmt.Printf("  %s -> Slots: %d to %d\n", node.Address, node.HashSlotsStart, node.HashSlotsEnd)
+		}
+
+		confirmed := confirm("Are you sure you want to apply this configuration?")
+
+		if !confirmed {
+			fmt.Println("\nConfiguration not applied")
+			return nil
 		}
 
 		for i := range nodes {
@@ -99,4 +114,25 @@ var nodeAddresses []string
 func init() {
 	CreateClusterCommand.Flags().StringSliceVar(&nodeAddresses, "addresses", []string{}, "A list of node addresses, separated by commas (e.g., --addresses=localhost:8080,localhost:8081)")
 	CreateClusterCommand.MarkFlagRequired("addresses")
+}
+
+func confirm(s string) bool {
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Printf("%s [y/n]: ", s)
+
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			return false // Assume no confirmation on error
+		}
+
+		response = strings.ToLower(strings.TrimSpace(response))
+
+		if response == "y" || response == "yes" {
+			return true
+		} else if response == "n" || response == "no" {
+			return false
+		}
+	}
 }
