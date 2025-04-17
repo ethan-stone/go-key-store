@@ -15,11 +15,6 @@ var CreateClusterCommand = &cobra.Command{
 	Use:   "create",
 	Short: "Configure a set of nodes to be in a cluster.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// 1. [x] Attempt to establish connections to all nodes. Error if can't.
-		// 2. [x] Create suggested config. Divide hash slots evenly.
-		// 3. [x] Ask for confirmation of config.
-		// 4. [x] If yes, apply config.
-
 		rpcClientManager := rpc.NewGrpcClientManager()
 
 		hashSlotRanges := hash.CalculateHashSlotRanges(len(nodeAddresses), 16384)
