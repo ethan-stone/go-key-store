@@ -181,22 +181,6 @@ func (s *RpcServer) GetClusterConfig(_ context.Context, req *GetClusterConfigReq
 	}, nil
 }
 
-func (s *RpcServer) GetNodeConfig(_ context.Context, req *GetNodeConfigRequest) (*GetNodeConfigResponse, error) {
-	log.Println("Received GetNodeConfig request")
-
-	clusterConfig := s.configManager.GetClusterConfig()
-
-	return &GetNodeConfigResponse{
-		Ok: true,
-		NodeConfig: &NodeConfig{
-			NodeId:         clusterConfig.ThisNode.ID,
-			Address:        clusterConfig.ThisNode.Address,
-			HashSlotsStart: uint32(clusterConfig.ThisNode.HashSlots[0]),
-			HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
-		},
-	}, nil
-}
-
 func NewRpcServer(storeService service.StoreService, configManager configuration.ConfigurationManager, rpcClientManager RpcClientManager) *grpc.Server {
 	grpcServer := grpc.NewServer()
 
