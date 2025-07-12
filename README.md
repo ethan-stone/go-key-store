@@ -48,3 +48,17 @@ protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=p
 # HashSlots
 
 Each node is responsible for a certain range of hash slot. We do the crc32(key) modulo 16384 to see what hash slot the key goes into and therefore what node the key should be stored in.
+
+# CLI Usage
+
+## Create a Cluster
+
+```bash
+go-key-store cluster create --addresses=localhost:8080,localhost:8081
+```
+
+## Verify a Cluster
+
+```bash
+go-key-store clsuter verify --address=localhost:8080
+```

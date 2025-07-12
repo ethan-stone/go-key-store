@@ -24,7 +24,7 @@ type ClusterConfig struct {
 type NodeConfig struct {
 	ID        string `json:"id"`
 	Address   string `json:"address"`
-	HashSlots []int  `json:"hashSlots"` // first element is the start of the range, second element is the end of the range.
+	HashSlots []int  `json:"hashSlots"` // First element is the start of the range, second element is the end of the range. Both sides are inclusive.
 }
 
 func GenerateNodeID() string {
