@@ -17,7 +17,7 @@ This repo is an attempt to learn many of the concepts related to distributed sys
 - [ ] Be able to handle a node not handling any hash slots.
   - [ ] Maybe just have a hash slot start and end of -1?
 - [ ] CLI to help with cluster configuration.
-  - [ ] "go-store cluster create <list of addresses>" Specify addresses of nodes. These nodes need to be running. Generate a suggested config, then configure all the nodes with suggested config.
+  - [x] "go-store cluster create <list of addresses>" Specify addresses of nodes. These nodes need to be running. Generate a suggested config, then configure all the nodes with suggested config.
     - [x] check if any of the nodes are already in a cluster, and if so don't proceed with cluster config.
     - [x] suggest a recommend config to the user and have them accept
   - [x] "go-store cluster verify --address <address>". Verifies all hash slots are covered in a a cluster.
@@ -27,7 +27,7 @@ This repo is an attempt to learn many of the concepts related to distributed sys
   - [x] Update to use a config file per node. For now each config file should have all other nodes.
   - [x] Add seed nodes to config file of nodes.
   - [x] Update seed node config files. To have knowledge of just other seed nodes.
-  - [ ] Implement gossip with seed nodes. When a new node starts, it reaches out to a random seed node. The seed node adds the new node to it's membership list, and returns ithe membership list with it's configuraton to the new node. Now the new node has knowledge of all other nodes.
+  - [ ] Implement gossip with seed nodes. When a new node starts, it reaches out to a random seed node. The seed node adds the new node to it's membership list, and returns the membership list with it's configuraton to the new node. Now the new node has knowledge of all other nodes.
 - [ ] Automatic assigning of hash slots.
 - [ ] How to gracefully handle nodes going down?
   - [ ] Remove from cluster config and stop pinging and gossiping.
