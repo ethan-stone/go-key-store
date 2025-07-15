@@ -12,7 +12,7 @@ var VerifyClusterCommand = &cobra.Command{
 	Use:   "verify",
 	Short: "Verify all hash slots in a cluster are covered.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		rpcClientManager := rpc.NewGrpcClientManager()
+		rpcClientManager := rpc.NewGrpcClientManager(rpc.NewRpcClient)
 
 		client, err := rpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
 			Address: nodeAddress,

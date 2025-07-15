@@ -15,7 +15,7 @@ var CreateClusterCommand = &cobra.Command{
 	Use:   "create",
 	Short: "Configure a set of nodes to be in a cluster.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		rpcClientManager := rpc.NewGrpcClientManager()
+		rpcClientManager := rpc.NewGrpcClientManager(rpc.NewRpcClient)
 
 		hashSlotRanges := hash.CalculateHashSlotRanges(len(nodeAddresses), 16384)
 

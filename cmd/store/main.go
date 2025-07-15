@@ -52,7 +52,7 @@ func main() {
 
 	var clusterConfig *configuration.ClusterConfig
 
-	grpcClientManager := rpc.NewGrpcClientManager()
+	grpcClientManager := rpc.NewGrpcClientManager(rpc.NewRpcClient)
 
 	otherNodes := []*configuration.NodeConfig{}
 

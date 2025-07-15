@@ -26,8 +26,14 @@ type GrpcClient struct {
 	Address string
 }
 
-func NewRpcClient(address string, opts grpc.DialOption) (*GrpcClient, error) {
-	conn, err := grpc.NewClient(address, opts)
+// RpcClientCreator is a function type for creating RpcClient instances.
+// It accepts variadic grpc.DialOption to allow flexible client configuration.
+type RpcClientCreator func(address string, opts ...grpc.DialOption) (RpcClient, error)
+
+// NewRpcClient creates a new GrpcClient.
+// It accepts variadic grpc.DialOption for custom gRPC client configuration.
+func NewRpcClient(address string, opts ...grpc.DialOption) (RpcClient, error) {
+	conn, err := grpc.NewClient(address, opts...)
 
 	if err != nil {
 		return nil, err
@@ -46,6 +52,7 @@ func NewRpcClient(address string, opts grpc.DialOption) (*GrpcClient, error) {
 	pingResponse, err := grpcClient.Ping()
 
 	if err != nil || !pingResponse {
+		conn.Close() // Close connection if initial ping fails
 		return nil, err
 	}
 
@@ -182,11 +189,13 @@ type RpcClientManager interface {
 }
 
 type GrpcClientManager struct {
+	creator    RpcClientCreator // Dependency injected creator
 	rpcClients map[string]*GrpcClient
 }
 
-func NewGrpcClientManager() *GrpcClientManager {
+func NewGrpcClientManager(creator RpcClientCreator) *GrpcClientManager {
 	return &GrpcClientManager{
+		creator:    creator,
 		rpcClients: make(map[string]*GrpcClient),
 	}
 }
@@ -198,12 +207,14 @@ func (rpcClientManager *GrpcClientManager) GetOrCreateRpcClient(config *RpcClien
 		return existingClient, nil
 	}
 
-	newClient, err := NewRpcClient(config.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Use the injected creator here
+	newClient, err := rpcClientManager.creator(config.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	if err != nil {
 		return nil, err
 	}
-	rpcClientManager.rpcClients[config.Address] = newClient
+
+	rpcClientManager.rpcClients[config.Address] = newClient.(*GrpcClient)
 
 	go func() {
 		for range time.NewTicker(time.Second * 5).C {
@@ -211,6 +222,8 @@ func (rpcClientManager *GrpcClientManager) GetOrCreateRpcClient(config *RpcClien
 			r, err := newClient.Ping()
 
 			if err != nil || !r {
+				// IMPORTANT: Change log.Fatalf to log.Printf in production code
+				// to avoid crashing the entire application on a background ping failure.
 				log.Fatalf("Could not ping server %v", err)
 			}
 		}

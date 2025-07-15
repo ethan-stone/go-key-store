@@ -29,7 +29,9 @@ func (gossipClient *GossipClient) Gossip() {
 				continue
 			}
 
-			for range 6 {
+			maxRandomIndexAttempts := 6
+
+			for range maxRandomIndexAttempts {
 				idx := rand.Intn(len(clusterConfig.OtherNodes))
 
 				_, ok := seenIndexes[idx]

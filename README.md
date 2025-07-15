@@ -33,6 +33,7 @@ This repo is an attempt to learn many of the concepts related to distributed sys
   - [ ] Remove from cluster config and stop pinging and gossiping.
 - [x] Better error handling for internal errors vs. a key just not being found. Right now any error is handled as a not found in the http api.
 - [ ] Add log levels for grpc clients. Right now it's very verbose.
+- [ ] Improve error handling.
 
 # Building GRPC Code
 
