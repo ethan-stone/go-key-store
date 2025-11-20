@@ -9,6 +9,10 @@ import (
 func TestWrite(t *testing.T) {
 	wal := NewWalWriter("test_write.bin")
 
+	t.Cleanup(func() {
+		os.Remove("test_write.bin")
+	})
+
 	walEntry := &WalEntry{
 		OpType:      Put,
 		KeyLength:   3,
@@ -21,34 +25,38 @@ func TestWrite(t *testing.T) {
 		t.Fatalf("Did not expect an error when writing")
 	}
 
-	// clean up wal file
-	os.Remove("test_write.bin")
 }
 
 func TestRead(t *testing.T) {
 	wal := NewWalWriter("test_read.bin")
+
+	t.Cleanup(func() {
+		os.Remove("test_read.bin")
+	})
 
 	walEntries := []*WalEntry{
 		{
 			OpType:      Put,
 			KeyLength:   2,
 			ValueLength: 3,
+			KeyBytes:    []byte("ab"),
 		},
 		{
 			OpType:      Del,
 			KeyLength:   5,
 			ValueLength: 0,
+			KeyBytes:    []byte("abcde"),
 		},
 	}
 
 	expectedWalEntries := []*WalEntryRead{
 		{
-			entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3},
-			size:  9,
+			entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("keyone")},
+			size:  11,
 		},
 		{
-			entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0},
-			size:  9,
+			entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("keytwo")},
+			size:  14,
 		},
 	}
 
@@ -86,22 +94,25 @@ func TestRead(t *testing.T) {
 		offset += readEntry.size
 	}
 
-	// clean up wal file
-	os.Remove("test_read.bin")
 }
 
 func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 	wal := NewWalWriter("test_eof.bin")
 
+	t.Cleanup(func() {
+		os.Remove("test_eof.bin")
+	})
+
 	walEntry := &WalEntry{
 		OpType:      Put,
 		KeyLength:   2,
 		ValueLength: 3,
+		KeyBytes:    []byte("ab"),
 	}
 	err := wal.Write(walEntry)
 
 	if err != nil {
-		t.Fatalf("Did not expect an error when writing")
+		t.Fatalf("Did not expect an error when writing: %v", err)
 	}
 
 	reader := NewWalReader("test_eof.bin")
@@ -109,7 +120,7 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 	readEntry, err := reader.Read(0)
 
 	if err != nil {
-		t.Fatalf("Did not expect an error when reading")
+		t.Fatalf("Did not expect an error when reading: %v", err)
 	}
 
 	finalReadEntry, err := reader.Read(readEntry.size)
@@ -122,5 +133,4 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 		t.Errorf("Expected nil, got %v", finalReadEntry)
 	}
 
-	os.Remove("test_eof.bin")
 }

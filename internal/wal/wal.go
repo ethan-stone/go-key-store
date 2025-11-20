@@ -17,9 +17,10 @@ const (
 )
 
 type WalEntry struct {
-	OpType      byte  // 1 for PUT. 2 for DEL.
-	KeyLength   int32 // 4 bytes
-	ValueLength int32 // 4 bytes
+	OpType      byte   // 1 for PUT. 2 for DEL.
+	KeyLength   int32  // 4 bytes
+	ValueLength int32  // 4 bytes
+	KeyBytes    []byte // variable
 }
 
 func NewWalWriter(fileName string) *WalWriter {
@@ -48,6 +49,12 @@ func (writer *WalWriter) Write(entry *WalEntry) error {
 	}
 
 	err = binary.Write(writer.file, binary.LittleEndian, entry.ValueLength)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = binary.Write(writer.file, binary.LittleEndian, entry.KeyBytes)
 
 	if err != nil {
 		panic(err)
@@ -86,9 +93,10 @@ func NewWalReader(fileName string) *WalReader {
 }
 
 func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
-	buf := make([]byte, 9)
+	headerSize := int64(9)
+	headerBuffer := make([]byte, headerSize)
 
-	_, err := reader.file.ReadAt(buf, offset)
+	_, err := reader.file.ReadAt(headerBuffer, offset)
 
 	if err != nil {
 		if err == io.EOF {
@@ -98,16 +106,30 @@ func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
 		panic(err)
 	}
 
-	opType := buf[0]
-	keyLength := binary.LittleEndian.Uint32(buf[1:5])
-	valueLength := binary.LittleEndian.Uint32(buf[5:9])
+	opType := headerBuffer[0]
+	keyLength := binary.LittleEndian.Uint32(headerBuffer[1:5])
+	valueLength := binary.LittleEndian.Uint32(headerBuffer[5:9])
 
 	if opType != Put && opType != Del {
 		return nil, fmt.Errorf("invalid op type: %d", opType)
 	}
 
+	dataBuffer := make([]byte, keyLength)
+
+	_, err = reader.file.ReadAt(dataBuffer, offset+headerSize)
+
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+
+		panic(err)
+	}
+
+	keyBytes := dataBuffer[0:keyLength]
+
 	return &WalEntryRead{
-		entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength)},
-		size:  9,
+		entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes},
+		size:  9 + int64(keyLength),
 	}, nil
 }
