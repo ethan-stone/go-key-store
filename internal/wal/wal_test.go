@@ -1,6 +1,7 @@
 package wal
 
 import (
+	"bytes"
 	"io"
 	"os"
 	"testing"
@@ -13,10 +14,14 @@ func TestWrite(t *testing.T) {
 		os.Remove("test_write.bin")
 	})
 
+	val := []byte("111")
+
 	walEntry := &WalEntry{
 		OpType:      Put,
 		KeyLength:   3,
 		ValueLength: 3,
+		KeyBytes:    []byte("abc"),
+		ValueBytes:  &val,
 	}
 
 	err := wal.Write(walEntry)
@@ -34,28 +39,32 @@ func TestRead(t *testing.T) {
 		os.Remove("test_read.bin")
 	})
 
+	val := []byte("111")
+
 	walEntries := []*WalEntry{
 		{
 			OpType:      Put,
 			KeyLength:   2,
 			ValueLength: 3,
 			KeyBytes:    []byte("ab"),
+			ValueBytes:  &val,
 		},
 		{
 			OpType:      Del,
 			KeyLength:   5,
 			ValueLength: 0,
 			KeyBytes:    []byte("abcde"),
+			ValueBytes:  nil,
 		},
 	}
 
 	expectedWalEntries := []*WalEntryRead{
 		{
-			entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("keyone")},
-			size:  11,
+			entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("ab"), ValueBytes: &val},
+			size:  14,
 		},
 		{
-			entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("keytwo")},
+			entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("abcde"), ValueBytes: nil},
 			size:  14,
 		},
 	}
@@ -87,6 +96,12 @@ func TestRead(t *testing.T) {
 		if readEntry.entry.ValueLength != expectedWalEntry.entry.ValueLength {
 			t.Errorf("Expected value length to be %d, got %d", expectedWalEntry.entry.ValueLength, readEntry.entry.ValueLength)
 		}
+		if !bytes.Equal(expectedWalEntry.entry.KeyBytes, readEntry.entry.KeyBytes) {
+			t.Errorf("Expected key bytes to be %s, got %s", string(expectedWalEntry.entry.KeyBytes), string(readEntry.entry.KeyBytes))
+		}
+		if expectedWalEntry.entry.ValueBytes != nil && readEntry.entry.ValueBytes != nil && !bytes.Equal(*readEntry.entry.ValueBytes, *expectedWalEntry.entry.ValueBytes) {
+			t.Errorf("Expected value bytes to be %s, got %s", string(*expectedWalEntry.entry.ValueBytes), string(*readEntry.entry.ValueBytes))
+		}
 		if readEntry.size != expectedWalEntry.size {
 			t.Errorf("Expected size to be %d, got %d", expectedWalEntry.size, readEntry.size)
 		}
@@ -103,11 +118,14 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 		os.Remove("test_eof.bin")
 	})
 
+	val := []byte("111")
+
 	walEntry := &WalEntry{
 		OpType:      Put,
 		KeyLength:   2,
 		ValueLength: 3,
 		KeyBytes:    []byte("ab"),
+		ValueBytes:  &val,
 	}
 	err := wal.Write(walEntry)
 

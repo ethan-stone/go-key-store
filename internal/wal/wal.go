@@ -17,10 +17,11 @@ const (
 )
 
 type WalEntry struct {
-	OpType      byte   // 1 for PUT. 2 for DEL.
-	KeyLength   int32  // 4 bytes
-	ValueLength int32  // 4 bytes
-	KeyBytes    []byte // variable
+	OpType      byte    // 1 for PUT. 2 for DEL.
+	KeyLength   int32   // 4 bytes
+	ValueLength int32   // 4 bytes
+	KeyBytes    []byte  // variable
+	ValueBytes  *[]byte // variable
 }
 
 func NewWalWriter(fileName string) *WalWriter {
@@ -60,13 +61,23 @@ func (writer *WalWriter) Write(entry *WalEntry) error {
 		panic(err)
 	}
 
+	if entry.OpType == Put {
+		if entry.ValueBytes == nil {
+			return fmt.Errorf("ValueBytes must not be nil for Put operation")
+		}
+
+		err = binary.Write(writer.file, binary.LittleEndian, *entry.ValueBytes)
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	err = writer.file.Sync()
 
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println("Wrote wal entry")
 
 	return nil
 }
@@ -114,7 +125,7 @@ func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
 		return nil, fmt.Errorf("invalid op type: %d", opType)
 	}
 
-	dataBuffer := make([]byte, keyLength)
+	dataBuffer := make([]byte, keyLength+valueLength)
 
 	_, err = reader.file.ReadAt(dataBuffer, offset+headerSize)
 
@@ -128,8 +139,14 @@ func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
 
 	keyBytes := dataBuffer[0:keyLength]
 
+	var valueBytes []byte = nil
+
+	if valueLength > 0 {
+		valueBytes = dataBuffer[keyLength : keyLength+valueLength]
+	}
+
 	return &WalEntryRead{
-		entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes},
-		size:  9 + int64(keyLength),
+		entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes, ValueBytes: &valueBytes},
+		size:  headerSize + int64(keyLength) + int64(valueLength),
 	}, nil
 }
