@@ -6,10 +6,11 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	wal := NewWal("wal.bin")
+	wal := NewWalWriter("wal.bin")
 
 	walEntry := &WalEntry{
-		OpType: Put,
+		OpType:    Put,
+		KeyLength: 3,
 	}
 
 	err := wal.Write(walEntry)
@@ -23,10 +24,11 @@ func TestWrite(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	wal := NewWal("wal.bin")
+	wal := NewWalWriter("wal.bin")
 
 	walEntry := &WalEntry{
-		OpType: Put,
+		OpType:    Put,
+		KeyLength: 2,
 	}
 
 	err := wal.Write(walEntry)
@@ -36,7 +38,8 @@ func TestRead(t *testing.T) {
 	}
 
 	walEntry2 := &WalEntry{
-		OpType: Del,
+		OpType:    Del,
+		KeyLength: 5,
 	}
 
 	err = wal.Write(walEntry2)
@@ -45,7 +48,9 @@ func TestRead(t *testing.T) {
 		t.Fatalf("Did not expect an error when writing")
 	}
 
-	readEntry, err := wal.Read(0)
+	reader := NewWalReader("wal.bin")
+
+	readEntry, err := reader.Read(0)
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when reading")
@@ -55,11 +60,15 @@ func TestRead(t *testing.T) {
 		t.Errorf("Expected op type to be %d, got %d", walEntry.OpType, readEntry.entry.OpType)
 	}
 
-	if readEntry.size != 1 {
+	if readEntry.entry.KeyLength != walEntry.KeyLength {
+		t.Errorf("Expected key length to be %d, got %d", walEntry.KeyLength, readEntry.entry.KeyLength)
+	}
+
+	if readEntry.size != 5 {
 		t.Errorf("Expected size to be 1, got %d", readEntry.size)
 	}
 
-	readEntry2, err := wal.Read(1)
+	readEntry2, err := reader.Read(readEntry.size)
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when reading")
@@ -69,7 +78,11 @@ func TestRead(t *testing.T) {
 		t.Errorf("Expected op type to be %d, got %d", walEntry2.OpType, readEntry2.entry.OpType)
 	}
 
-	if readEntry2.size != 1 {
+	if readEntry2.entry.KeyLength != walEntry2.KeyLength {
+		t.Errorf("Expected key length to be %d, got %d", walEntry2.KeyLength, readEntry2.entry.KeyLength)
+	}
+
+	if readEntry2.size != 5 {
 		t.Errorf("Expected size to be 1, got %d", readEntry2.size)
 	}
 

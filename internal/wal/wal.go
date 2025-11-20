@@ -4,11 +4,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
-	"sync"
 )
 
-type Wal struct {
-	sync.RWMutex
+type WalWriter struct {
 	file *os.File
 }
 
@@ -18,32 +16,36 @@ const (
 )
 
 type WalEntry struct {
-	OpType byte // 1 for PUT. 2 for DEL.
+	OpType    byte  // 1 for PUT. 2 for DEL.
+	KeyLength int32 // 4 bytes
 }
 
-func NewWal(fileName string) *Wal {
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+func NewWalWriter(fileName string) *WalWriter {
+	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return &Wal{
+	return &WalWriter{
 		file: file,
 	}
 }
 
-func (wal *Wal) Write(entry *WalEntry) error {
-	wal.Lock()
-	defer wal.Unlock()
-
-	err := binary.Write(wal.file, binary.LittleEndian, entry.OpType)
+func (writer *WalWriter) Write(entry *WalEntry) error {
+	err := binary.Write(writer.file, binary.LittleEndian, entry.OpType)
 
 	if err != nil {
 		panic(err)
 	}
 
-	err = wal.file.Sync()
+	err = binary.Write(writer.file, binary.LittleEndian, entry.KeyLength)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = writer.file.Sync()
 
 	if err != nil {
 		panic(err)
@@ -59,26 +61,40 @@ type WalEntryRead struct {
 	size  int64
 }
 
-func (wal *Wal) Read(offset int64) (*WalEntryRead, error) {
-	wal.RLock()
-	defer wal.RUnlock()
+type WalReader struct {
+	file *os.File
+}
 
-	buf := make([]byte, 1)
+func NewWalReader(fileName string) *WalReader {
+	file, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
 
-	_, err := wal.file.ReadAt(buf, offset)
+	if err != nil {
+		panic(err)
+	}
+
+	return &WalReader{
+		file: file,
+	}
+}
+
+func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
+	buf := make([]byte, 5)
+
+	_, err := reader.file.ReadAt(buf, offset)
 
 	if err != nil {
 		panic(err)
 	}
 
 	opType := buf[0]
+	keyLength := binary.LittleEndian.Uint32(buf[1:5])
 
 	if opType != Put && opType != Del {
 		return nil, fmt.Errorf("invalid op type: %d", opType)
 	}
 
 	return &WalEntryRead{
-		entry: &WalEntry{OpType: opType},
-		size:  1,
+		entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength)},
+		size:  5,
 	}, nil
 }
