@@ -16,7 +16,7 @@ func TestWrite(t *testing.T) {
 
 	val := []byte("111")
 
-	walEntry := &WalEntry{
+	walEntry := &WalEntryWrite{
 		OpType:      Put,
 		KeyLength:   3,
 		ValueLength: 3,
@@ -41,7 +41,7 @@ func TestRead(t *testing.T) {
 
 	val := []byte("111")
 
-	walEntries := []*WalEntry{
+	walEntries := []*WalEntryWrite{
 		{
 			OpType:      Put,
 			KeyLength:   2,
@@ -61,11 +61,11 @@ func TestRead(t *testing.T) {
 	expectedWalEntries := []*WalEntryRead{
 		{
 			entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("ab"), ValueBytes: &val},
-			size:  14,
+			size:  18,
 		},
 		{
 			entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("abcde"), ValueBytes: nil},
-			size:  14,
+			size:  18,
 		},
 	}
 
@@ -120,7 +120,7 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 
 	val := []byte("111")
 
-	walEntry := &WalEntry{
+	walEntry := &WalEntryWrite{
 		OpType:      Put,
 		KeyLength:   2,
 		ValueLength: 3,
