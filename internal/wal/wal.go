@@ -3,6 +3,7 @@ package wal
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"os"
 )
 
@@ -83,6 +84,10 @@ func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
 	_, err := reader.file.ReadAt(buf, offset)
 
 	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+
 		panic(err)
 	}
 
