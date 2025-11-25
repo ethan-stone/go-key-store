@@ -4,11 +4,13 @@ import (
 	"sync"
 
 	"github.com/ethan-stone/go-key-store/internal/service"
+	"github.com/ethan-stone/go-key-store/internal/wal"
 )
 
 type LocalKeyValueStore struct {
 	sync.RWMutex
 	data map[string]string
+	wal  *wal.WalWriter
 }
 
 func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
@@ -65,10 +67,11 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 
 var Store *LocalKeyValueStore
 
-func InitializeLocalKeyValueStore() *LocalKeyValueStore {
+func InitializeLocalKeyValueStore(wal *wal.WalWriter) *LocalKeyValueStore {
 
 	Store = &LocalKeyValueStore{
 		data: make(map[string]string),
+		wal:  wal,
 	}
 
 	return Store

@@ -86,7 +86,7 @@ func main() {
 
 	walReader := wal.NewWalReader("wal.bin")
 
-	localStore := store.InitializeLocalKeyValueStore()
+	localStore := store.InitializeLocalKeyValueStore(wal.NewWalWriter("wal.bin"))
 
 	offset := int64(0)
 

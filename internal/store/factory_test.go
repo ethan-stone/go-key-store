@@ -1,10 +1,12 @@
 package store
 
 import (
+	"os"
 	"testing"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
+	"github.com/ethan-stone/go-key-store/internal/wal"
 )
 
 type MockRpcClientManager struct {
@@ -110,7 +112,7 @@ func TestReturnsLocalStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore()
+	InitializeLocalKeyValueStore(wal.NewWalWriter("wal.bin"))
 
 	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
 
@@ -123,6 +125,10 @@ func TestReturnsLocalStore(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected *LocalKeyValueStore, got %T", store)
 	}
+
+	t.Cleanup(func() {
+		os.Remove("wal.bin")
+	})
 }
 
 func TestReturnsRemoteStore(t *testing.T) {
@@ -144,7 +150,7 @@ func TestReturnsRemoteStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore()
+	InitializeLocalKeyValueStore(wal.NewWalWriter("wal.bin"))
 
 	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
 
@@ -157,4 +163,8 @@ func TestReturnsRemoteStore(t *testing.T) {
 	if !ok {
 		t.Errorf("Expected *RemoteKeyValueStore, got %T", store)
 	}
+
+	t.Cleanup(func() {
+		os.Remove("wal.bin")
+	})
 }
