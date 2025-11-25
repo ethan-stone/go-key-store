@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -85,7 +86,30 @@ func main() {
 
 	walReader := wal.NewWalReader("wal.bin")
 
-	localStore := store.InitializeLocalKeyValueStore(walReader)
+	localStore := store.InitializeLocalKeyValueStore()
+
+	offset := int64(0)
+
+	for {
+		entry, err := walReader.Read(offset)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			panic(err)
+		}
+
+		switch entry.Entry.OpType {
+		case wal.Put:
+			localStore.Put(string(entry.Entry.KeyBytes), string(*entry.Entry.ValueBytes))
+		case wal.Del:
+			localStore.Delete(string(entry.Entry.KeyBytes))
+		}
+
+		offset += entry.Size
+	}
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{
