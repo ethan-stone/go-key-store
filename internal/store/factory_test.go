@@ -112,7 +112,12 @@ func TestReturnsLocalStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore(wal.NewWalWriter("wal.bin"))
+	InitializeLocalKeyValueStore(wal.NewWalWriter(
+		&wal.WalWriterConfig{
+			FileName: "wal.bin",
+			SyncMode: wal.SyncModePeriodic,
+		},
+	))
 
 	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
 
@@ -150,7 +155,12 @@ func TestReturnsRemoteStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore(wal.NewWalWriter("wal.bin"))
+	InitializeLocalKeyValueStore(wal.NewWalWriter(
+		&wal.WalWriterConfig{
+			FileName: "wal.bin",
+			SyncMode: wal.SyncModeAlways,
+		},
+	))
 
 	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
 

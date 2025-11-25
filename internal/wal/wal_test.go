@@ -8,7 +8,10 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	wal := NewWalWriter("test_write.bin")
+	wal := NewWalWriter(&WalWriterConfig{
+		FileName: "test_write.bin",
+		SyncMode: SyncModeAlways,
+	})
 
 	t.Cleanup(func() {
 		os.Remove("test_write.bin")
@@ -33,7 +36,10 @@ func TestWrite(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	wal := NewWalWriter("test_read.bin")
+	wal := NewWalWriter(&WalWriterConfig{
+		FileName: "test_read.bin",
+		SyncMode: SyncModeAlways,
+	})
 
 	t.Cleanup(func() {
 		os.Remove("test_read.bin")
@@ -112,7 +118,10 @@ func TestRead(t *testing.T) {
 }
 
 func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
-	wal := NewWalWriter("test_eof.bin")
+	wal := NewWalWriter(&WalWriterConfig{
+		FileName: "test_eof.bin",
+		SyncMode: SyncModeAlways,
+	})
 
 	t.Cleanup(func() {
 		os.Remove("test_eof.bin")

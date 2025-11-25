@@ -7,10 +7,12 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
+	"time"
 )
 
 type WalWriter struct {
-	file *os.File
+	file   *os.File
+	config *WalWriterConfig
 }
 
 const (
@@ -35,16 +37,39 @@ type WalEntryWrite struct {
 	ValueBytes  *[]byte // variable
 }
 
-func NewWalWriter(fileName string) *WalWriter {
-	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+const (
+	SyncModeNone = iota
+	SyncModePeriodic
+	SyncModeAlways
+)
+
+type WalWriterConfig struct {
+	FileName string
+	SyncMode int
+}
+
+func NewWalWriter(config *WalWriterConfig) *WalWriter {
+	file, err := os.OpenFile(config.FileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return &WalWriter{
-		file: file,
+	writer := &WalWriter{
+		file:   file,
+		config: config,
 	}
+
+	if config.SyncMode == SyncModePeriodic {
+		go func() {
+			for {
+				time.Sleep(time.Second * 1)
+				writer.file.Sync()
+			}
+		}()
+	}
+
+	return writer
 }
 
 func (writer *WalWriter) Write(entry *WalEntryWrite) error {
@@ -101,7 +126,13 @@ func (writer *WalWriter) Write(entry *WalEntryWrite) error {
 		panic(err)
 	}
 
-	err = writer.file.Sync()
+	if writer.config.SyncMode == SyncModeAlways {
+		err = writer.file.Sync()
+
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	if err != nil {
 		panic(err)
