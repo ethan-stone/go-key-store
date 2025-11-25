@@ -84,14 +84,20 @@ func main() {
 
 	gossiper.Gossip()
 
-	walReader := wal.NewWalReader("wal.bin")
-
-	localStore := store.InitializeLocalKeyValueStore(wal.NewWalWriter(
+	fileWalWriter := wal.NewFileWalWriter(
 		&wal.WalWriterConfig{
 			FileName: "wal.bin",
-			SyncMode: wal.SyncModeAlways,
+			SyncMode: wal.SyncModePeriodic,
 		},
-	))
+	)
+
+	noopWalWriter := wal.NewNoopWalWriter()
+
+	walReader := wal.NewFileWalReader("wal.bin")
+
+	localStore := store.InitializeLocalKeyValueStore(&store.InitializeLocalKeyValueStoreConfig{
+		WalWriter: noopWalWriter,
+	})
 
 	offset := int64(0)
 
@@ -115,6 +121,8 @@ func main() {
 
 		offset += entry.Size
 	}
+
+	localStore.SetWalWriter(fileWalWriter)
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{

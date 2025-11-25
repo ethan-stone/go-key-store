@@ -10,7 +10,12 @@ import (
 	"time"
 )
 
-type WalWriter struct {
+type WalWriter interface {
+	Write(entry *WalEntryWrite) error
+	Close() error
+}
+
+type FileWalWriter struct {
 	file   *os.File
 	config *WalWriterConfig
 }
@@ -48,14 +53,14 @@ type WalWriterConfig struct {
 	SyncMode int
 }
 
-func NewWalWriter(config *WalWriterConfig) *WalWriter {
+func NewFileWalWriter(config *WalWriterConfig) *FileWalWriter {
 	file, err := os.OpenFile(config.FileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 
 	if err != nil {
 		panic(err)
 	}
 
-	writer := &WalWriter{
+	writer := &FileWalWriter{
 		file:   file,
 		config: config,
 	}
@@ -72,7 +77,7 @@ func NewWalWriter(config *WalWriterConfig) *WalWriter {
 	return writer
 }
 
-func (writer *WalWriter) Write(entry *WalEntryWrite) error {
+func (writer *FileWalWriter) Write(entry *WalEntryWrite) error {
 
 	buf := new(bytes.Buffer)
 
@@ -141,28 +146,53 @@ func (writer *WalWriter) Write(entry *WalEntryWrite) error {
 	return nil
 }
 
+func (writer *FileWalWriter) Close() error {
+	err := writer.file.Sync()
+
+	if err != nil {
+		return err
+	}
+
+	return writer.file.Close()
+}
+
+type NoopWalWriter struct {
+}
+
+func NewNoopWalWriter() *NoopWalWriter {
+	return &NoopWalWriter{}
+}
+
+func (writer *NoopWalWriter) Write(entry *WalEntryWrite) error {
+	return nil
+}
+
+func (writer *NoopWalWriter) Close() error {
+	return nil
+}
+
 type WalEntryRead struct {
 	Entry *WalEntry
 	Size  int64
 }
 
-type WalReader struct {
+type FileWalReader struct {
 	file *os.File
 }
 
-func NewWalReader(fileName string) *WalReader {
+func NewFileWalReader(fileName string) *FileWalReader {
 	file, err := os.OpenFile(fileName, os.O_RDONLY, 0666)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return &WalReader{
+	return &FileWalReader{
 		file: file,
 	}
 }
 
-func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
+func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 	headerSize := int64(9)
 	checksumSize := int64(4)
 	headerBuffer := make([]byte, headerSize)
@@ -184,6 +214,10 @@ func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
 	if opType != Put && opType != Del {
 		return nil, fmt.Errorf("invalid op type: %d", opType)
 	}
+
+	fmt.Printf("opType: %v\n", opType)
+	fmt.Printf("keyLength: %v\n", keyLength)
+	fmt.Printf("valueLength: %v\n", valueLength)
 
 	dataBuffer := make([]byte, keyLength+valueLength)
 
@@ -230,6 +264,8 @@ func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
 	computedChecksum := crc32.ChecksumIEEE(entryBuf)
 
 	if storedChecksum != computedChecksum {
+		fmt.Printf("%v\n", storedChecksum)
+		fmt.Printf("%v\n", computedChecksum)
 		return nil, fmt.Errorf("checksum mismatch")
 	}
 

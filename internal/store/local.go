@@ -9,8 +9,8 @@ import (
 
 type LocalKeyValueStore struct {
 	sync.RWMutex
-	data map[string]string
-	wal  *wal.WalWriter
+	data      map[string]string
+	walWriter wal.WalWriter
 }
 
 func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
@@ -37,8 +37,8 @@ func (store *LocalKeyValueStore) Put(key string, val string) error {
 
 	valBytes := []byte(val)
 
-	store.wal.Write(&wal.WalEntryWrite{
-		OpType:      wal.Del,
+	store.walWriter.Write(&wal.WalEntryWrite{
+		OpType:      wal.Put,
 		KeyLength:   int32(len(key)),
 		ValueLength: int32(len(val)),
 		KeyBytes:    []byte(key),
@@ -54,7 +54,7 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 	store.Lock()
 	defer store.Unlock()
 
-	store.wal.Write(&wal.WalEntryWrite{
+	store.walWriter.Write(&wal.WalEntryWrite{
 		OpType:      wal.Del,
 		KeyLength:   int32(len(key)),
 		ValueLength: 0,
@@ -67,13 +67,21 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 	return nil
 }
 
+func (store *LocalKeyValueStore) SetWalWriter(walWriter wal.WalWriter) {
+	Store.walWriter = walWriter
+}
+
 var Store *LocalKeyValueStore
 
-func InitializeLocalKeyValueStore(wal *wal.WalWriter) *LocalKeyValueStore {
+type InitializeLocalKeyValueStoreConfig struct {
+	WalWriter wal.WalWriter
+}
+
+func InitializeLocalKeyValueStore(config *InitializeLocalKeyValueStoreConfig) *LocalKeyValueStore {
 
 	Store = &LocalKeyValueStore{
-		data: make(map[string]string),
-		wal:  wal,
+		data:      make(map[string]string),
+		walWriter: config.WalWriter,
 	}
 
 	return Store

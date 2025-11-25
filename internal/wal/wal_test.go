@@ -8,7 +8,7 @@ import (
 )
 
 func TestWrite(t *testing.T) {
-	wal := NewWalWriter(&WalWriterConfig{
+	wal := NewFileWalWriter(&WalWriterConfig{
 		FileName: "test_write.bin",
 		SyncMode: SyncModeAlways,
 	})
@@ -36,7 +36,7 @@ func TestWrite(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	wal := NewWalWriter(&WalWriterConfig{
+	wal := NewFileWalWriter(&WalWriterConfig{
 		FileName: "test_read.bin",
 		SyncMode: SyncModeAlways,
 	})
@@ -82,7 +82,7 @@ func TestRead(t *testing.T) {
 		}
 	}
 
-	reader := NewWalReader("test_read.bin")
+	reader := NewFileWalReader("test_read.bin")
 
 	offset := int64(0)
 
@@ -118,7 +118,7 @@ func TestRead(t *testing.T) {
 }
 
 func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
-	wal := NewWalWriter(&WalWriterConfig{
+	wal := NewFileWalWriter(&WalWriterConfig{
 		FileName: "test_eof.bin",
 		SyncMode: SyncModeAlways,
 	})
@@ -142,7 +142,7 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 		t.Fatalf("Did not expect an error when writing: %v", err)
 	}
 
-	reader := NewWalReader("test_eof.bin")
+	reader := NewFileWalReader("test_eof.bin")
 
 	readEntry, err := reader.Read(0)
 

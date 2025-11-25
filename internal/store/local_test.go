@@ -10,7 +10,7 @@ import (
 func TestPut(t *testing.T) {
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
-		wal: wal.NewWalWriter(&wal.WalWriterConfig{
+		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			FileName: "wal.bin",
 			SyncMode: wal.SyncModeAlways,
 		}),
@@ -30,7 +30,7 @@ func TestPut(t *testing.T) {
 func TestGetShouldReturnNotOkWhenKeyNotFound(t *testing.T) {
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
-		wal: wal.NewWalWriter(&wal.WalWriterConfig{
+		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			FileName: "wal.bin",
 			SyncMode: wal.SyncModeAlways,
 		}),
@@ -54,7 +54,7 @@ func TestGetShouldReturnNotOkWhenKeyNotFound(t *testing.T) {
 func TestShouldReturnOkWhenKeyFound(t *testing.T) {
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
-		wal: wal.NewWalWriter(&wal.WalWriterConfig{
+		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			FileName: "wal.bin",
 			SyncMode: wal.SyncModeAlways,
 		}),
@@ -84,7 +84,7 @@ func TestShouldReturnOkWhenKeyFound(t *testing.T) {
 func TestShouldDelete(t *testing.T) {
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
-		wal: wal.NewWalWriter(&wal.WalWriterConfig{
+		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			FileName: "wal.bin",
 			SyncMode: wal.SyncModeAlways,
 		}),
