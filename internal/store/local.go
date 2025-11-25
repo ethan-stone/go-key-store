@@ -1,9 +1,11 @@
 package store
 
 import (
+	"io"
 	"sync"
 
 	"github.com/ethan-stone/go-key-store/internal/service"
+	"github.com/ethan-stone/go-key-store/internal/wal"
 )
 
 type LocalKeyValueStore struct {
@@ -65,9 +67,32 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 
 var Store *LocalKeyValueStore
 
-func InitializeLocalKeyValueStore() *LocalKeyValueStore {
+func InitializeLocalKeyValueStore(walReader *wal.WalReader) *LocalKeyValueStore {
+
+	offset := int64(0)
+
 	Store = &LocalKeyValueStore{
 		data: make(map[string]string),
+	}
+
+	for {
+		entry, err := walReader.Read(offset)
+
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+
+			panic(err)
+		}
+
+		if entry.Entry.OpType == wal.Put {
+			Store.Put(string(entry.Entry.KeyBytes), string(*entry.Entry.ValueBytes))
+		} else if entry.Entry.OpType == wal.Del {
+			Store.Delete(string(entry.Entry.KeyBytes))
+		}
+
+		offset += entry.Size
 	}
 
 	return Store

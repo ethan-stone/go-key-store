@@ -111,8 +111,8 @@ func (writer *WalWriter) Write(entry *WalEntryWrite) error {
 }
 
 type WalEntryRead struct {
-	entry *WalEntry
-	size  int64
+	Entry *WalEntry
+	Size  int64
 }
 
 type WalReader struct {
@@ -203,7 +203,7 @@ func (reader *WalReader) Read(offset int64) (*WalEntryRead, error) {
 	}
 
 	return &WalEntryRead{
-		entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes, ValueBytes: &valueBytes, CheckSum: storedChecksum},
-		size:  headerSize + int64(keyLength) + int64(valueLength) + checksumSize,
+		Entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes, ValueBytes: &valueBytes, CheckSum: storedChecksum},
+		Size:  headerSize + int64(keyLength) + int64(valueLength) + checksumSize,
 	}, nil
 }

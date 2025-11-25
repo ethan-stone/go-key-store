@@ -12,6 +12,7 @@ import (
 	"github.com/ethan-stone/go-key-store/internal/http_server"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
 	"github.com/ethan-stone/go-key-store/internal/store"
+	"github.com/ethan-stone/go-key-store/internal/wal"
 )
 
 // 1. Read config file. This contains info about this node, and seed node to get info of other nodes.
@@ -82,7 +83,9 @@ func main() {
 
 	gossiper.Gossip()
 
-	localStore := store.InitializeLocalKeyValueStore()
+	walReader := wal.NewWalReader("wal.bin")
+
+	localStore := store.InitializeLocalKeyValueStore(walReader)
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{

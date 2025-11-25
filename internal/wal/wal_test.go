@@ -60,12 +60,12 @@ func TestRead(t *testing.T) {
 
 	expectedWalEntries := []*WalEntryRead{
 		{
-			entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("ab"), ValueBytes: &val},
-			size:  18,
+			Entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("ab"), ValueBytes: &val},
+			Size:  18,
 		},
 		{
-			entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("abcde"), ValueBytes: nil},
-			size:  18,
+			Entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("abcde"), ValueBytes: nil},
+			Size:  18,
 		},
 	}
 
@@ -87,26 +87,26 @@ func TestRead(t *testing.T) {
 			t.Fatalf("Did not expect an error when reading: %v", err)
 		}
 
-		if readEntry.entry.OpType != expectedWalEntry.entry.OpType {
-			t.Errorf("Expected op type to be %d, got %d", expectedWalEntry.entry.OpType, readEntry.entry.OpType)
+		if readEntry.Entry.OpType != expectedWalEntry.Entry.OpType {
+			t.Errorf("Expected op type to be %d, got %d", expectedWalEntry.Entry.OpType, readEntry.Entry.OpType)
 		}
-		if readEntry.entry.KeyLength != expectedWalEntry.entry.KeyLength {
-			t.Errorf("Expected key length to be %d, got %d", expectedWalEntry.entry.KeyLength, readEntry.entry.KeyLength)
+		if readEntry.Entry.KeyLength != expectedWalEntry.Entry.KeyLength {
+			t.Errorf("Expected key length to be %d, got %d", expectedWalEntry.Entry.KeyLength, readEntry.Entry.KeyLength)
 		}
-		if readEntry.entry.ValueLength != expectedWalEntry.entry.ValueLength {
-			t.Errorf("Expected value length to be %d, got %d", expectedWalEntry.entry.ValueLength, readEntry.entry.ValueLength)
+		if readEntry.Entry.ValueLength != expectedWalEntry.Entry.ValueLength {
+			t.Errorf("Expected value length to be %d, got %d", expectedWalEntry.Entry.ValueLength, readEntry.Entry.ValueLength)
 		}
-		if !bytes.Equal(expectedWalEntry.entry.KeyBytes, readEntry.entry.KeyBytes) {
-			t.Errorf("Expected key bytes to be %s, got %s", string(expectedWalEntry.entry.KeyBytes), string(readEntry.entry.KeyBytes))
+		if !bytes.Equal(expectedWalEntry.Entry.KeyBytes, readEntry.Entry.KeyBytes) {
+			t.Errorf("Expected key bytes to be %s, got %s", string(expectedWalEntry.Entry.KeyBytes), string(readEntry.Entry.KeyBytes))
 		}
-		if expectedWalEntry.entry.ValueBytes != nil && readEntry.entry.ValueBytes != nil && !bytes.Equal(*readEntry.entry.ValueBytes, *expectedWalEntry.entry.ValueBytes) {
-			t.Errorf("Expected value bytes to be %s, got %s", string(*expectedWalEntry.entry.ValueBytes), string(*readEntry.entry.ValueBytes))
+		if expectedWalEntry.Entry.ValueBytes != nil && readEntry.Entry.ValueBytes != nil && !bytes.Equal(*readEntry.Entry.ValueBytes, *expectedWalEntry.Entry.ValueBytes) {
+			t.Errorf("Expected value bytes to be %s, got %s", string(*expectedWalEntry.Entry.ValueBytes), string(*readEntry.Entry.ValueBytes))
 		}
-		if readEntry.size != expectedWalEntry.size {
-			t.Errorf("Expected size to be %d, got %d", expectedWalEntry.size, readEntry.size)
+		if readEntry.Size != expectedWalEntry.Size {
+			t.Errorf("Expected size to be %d, got %d", expectedWalEntry.Size, readEntry.Size)
 		}
 
-		offset += readEntry.size
+		offset += readEntry.Size
 	}
 
 }
@@ -141,7 +141,7 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 		t.Fatalf("Did not expect an error when reading: %v", err)
 	}
 
-	finalReadEntry, err := reader.Read(readEntry.size)
+	finalReadEntry, err := reader.Read(readEntry.Size)
 
 	if err != io.EOF {
 		t.Errorf("Expected EOF, got %v", err)
