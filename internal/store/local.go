@@ -25,12 +25,6 @@ func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
 		}, nil
 	}
 
-	OpLog.AddEntry(&OpLogEntry{
-		OpType: Get,
-		Key:    key,
-		Val:    &val,
-	})
-
 	return &service.GetResult{
 		Ok:  true,
 		Val: val,
@@ -40,26 +34,34 @@ func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
 func (store *LocalKeyValueStore) Put(key string, val string) error {
 	store.Lock()
 	defer store.Unlock()
-	store.data[key] = val
 
-	defer OpLog.AddEntry(&OpLogEntry{
-		OpType: Put,
-		Key:    key,
-		Val:    &val,
+	valBytes := []byte(val)
+
+	store.wal.Write(&wal.WalEntryWrite{
+		OpType:      wal.Del,
+		KeyLength:   int32(len(key)),
+		ValueLength: int32(len(val)),
+		KeyBytes:    []byte(key),
+		ValueBytes:  &valBytes,
 	})
+
+	store.data[key] = val
 
 	return nil
 }
 
 func (store *LocalKeyValueStore) Delete(key string) error {
-
 	store.Lock()
 	defer store.Unlock()
-	defer OpLog.AddEntry(&OpLogEntry{
-		OpType: Delete,
-		Key:    key,
-		Val:    nil,
+
+	store.wal.Write(&wal.WalEntryWrite{
+		OpType:      wal.Del,
+		KeyLength:   int32(len(key)),
+		ValueLength: 0,
+		KeyBytes:    []byte(key),
+		ValueBytes:  nil,
 	})
+
 	delete(store.data, key)
 
 	return nil
