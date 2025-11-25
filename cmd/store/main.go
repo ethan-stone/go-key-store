@@ -177,5 +177,7 @@ func main() {
 
 	grpcServer.GracefulStop()
 
+	fileWalWriter.Close()
+
 	fmt.Println("Server stopped cleanly.")
 }
