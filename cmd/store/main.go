@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/gossip"
@@ -132,10 +137,13 @@ func main() {
 		},
 	)
 
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
 	go func() {
 		log.Printf("HTTP server running on port %s", httpPort)
 
-		if err := httpServer.ListenAndServe(); err != nil {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start http server %v", err)
 		}
 	}()
@@ -150,8 +158,24 @@ func main() {
 
 	grpcServer := rpc.NewRpcServer(localStore, configurationManager, grpcClientManager)
 
-	if err := grpcServer.Serve(list); err != nil {
-		log.Fatalf("failed to start grpc server %v", err)
+	go func() {
+		if err := grpcServer.Serve(list); err != nil {
+			log.Fatalf("failed to start grpc server %v", err)
+		}
+	}()
+
+	<-stop
+
+	// Create a context with timeout for shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// Attempt graceful shutdown
+	if err := httpServer.Shutdown(ctx); err != nil {
+		fmt.Printf("Forced shutdown: %v\n", err)
 	}
 
+	grpcServer.GracefulStop()
+
+	fmt.Println("Server stopped cleanly.")
 }
