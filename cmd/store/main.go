@@ -158,7 +158,7 @@ func main() {
 		},
 	))
 
-	localStore.StartCheckpointManager(time.Second*1, 64)
+	localStore.StartCheckpointManager(time.Second*1, 64*1024*1024) // 64MB
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{
