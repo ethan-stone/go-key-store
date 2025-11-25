@@ -10,6 +10,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -28,6 +32,7 @@ import (
 // 5. Initialize rest of rpc clients.
 // 6. Start gRPC server for inter-node communications.
 // 7. Start HTTP server for client requests.
+
 func main() {
 	log.Default().SetFlags(log.Ldate | log.Ltime | log.Lmsgprefix)
 
@@ -89,45 +94,71 @@ func main() {
 
 	gossiper.Gossip()
 
-	fileWalWriter := wal.NewFileWalWriter(
-		&wal.WalWriterConfig{
-			FileName: "wal.bin",
-			SyncMode: wal.SyncModePeriodic,
-		},
-	)
-
 	noopWalWriter := wal.NewNoopWalWriter()
-
-	walReader := wal.NewFileWalReader("wal.bin")
 
 	localStore := store.InitializeLocalKeyValueStore(&store.InitializeLocalKeyValueStoreConfig{
 		WalWriter: noopWalWriter,
 	})
 
-	offset := int64(0)
+	err := localStore.LoadFromSnapshot("snapshot.bin")
 
-	for {
-		entry, err := walReader.Read(offset)
-
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-
-			panic(err)
-		}
-
-		switch entry.Entry.OpType {
-		case wal.Put:
-			localStore.Put(string(entry.Entry.KeyBytes), string(*entry.Entry.ValueBytes))
-		case wal.Del:
-			localStore.Delete(string(entry.Entry.KeyBytes))
-		}
-
-		offset += entry.Size
+	if err != nil {
+		log.Fatalf("failed to load from snapshot %v", err)
 	}
 
-	localStore.SetWalWriter(fileWalWriter)
+	walFiles, _ := filepath.Glob("wals/wal_*.bin")
+	sort.Strings(walFiles)
+
+	for _, walPath := range walFiles {
+		fmt.Println("replaying", walPath)
+		walReader := wal.NewFileWalReader(walPath)
+		offset := int64(0)
+
+		for {
+			entry, err := walReader.Read(offset)
+
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+
+				panic(err)
+			}
+
+			switch entry.Entry.OpType {
+			case wal.Put:
+				localStore.Put(string(entry.Entry.KeyBytes), string(*entry.Entry.ValueBytes))
+			case wal.Del:
+				localStore.Delete(string(entry.Entry.KeyBytes))
+			}
+
+			offset += entry.Size
+		}
+		walReader.Close()
+
+	}
+
+	latestWalFile := walFiles[len(walFiles)-1]
+	latestWalFileIndex := strings.Split(strings.Split(latestWalFile, "wal_")[1], ".bin")[0]
+	nextIndex, err := strconv.Atoi(latestWalFileIndex)
+
+	if err != nil {
+		log.Fatalf("failed to convert latest wal file index to int %v", err)
+	}
+
+	nextIndex++
+
+	// For simplicity, we start a new WAL file.
+	// For max efficiency, we could try to reuse the most recent WAL file if valid/healthy, but not right now.
+	localStore.SetWalWriter(wal.NewFileWalWriter(
+		&wal.WalWriterConfig{
+			Directory: "wals",
+			SyncMode:  wal.SyncModeAlways,
+			Index:     nextIndex,
+		},
+	))
+
+	localStore.StartCheckpointManager(time.Second*1, 64)
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{
@@ -177,7 +208,7 @@ func main() {
 
 	grpcServer.GracefulStop()
 
-	fileWalWriter.Close()
+	localStore.Close()
 
 	fmt.Println("Server stopped cleanly.")
 }

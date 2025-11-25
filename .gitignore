@@ -1,3 +1,4 @@
 build
 
-*wal.bin
+wal*.bin
+snapshot*.bin

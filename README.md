@@ -11,7 +11,8 @@ This repo is an attempt to learn many of the concepts related to distributed sys
 - [x] Route requests to correct node for hash slot.
 - [x] Consider making a "KeyValueStoreFactory" that can get either a "LocalKeyValueStore" or a "RemoteKeyValueStore". Local means the data is stored on this node, while Remote means it's stored on a different node. \*Update definitely need to do this. The local store needs to be decoupled from RPC, because the RPC server side is going to need to reference the local store. Otherwise we'd have a circular module dependency.
 - [x] Need to handle set and retrieving cluster config better. There are dangling pointers everywhere. Probably need to use a "configurationManager" much like "rpcClientManager"
-- [ ] Implement WAL and rebuild on start up. For now do a super durable WAL where we first commit the log and then update in memory DB.
+- [x] Implement WAL and rebuild on start up. For now do a super durable WAL where we first commit the log and then update in memory DB.
+- [ ] Rotate WAL files when they hit certain size.
 - [ ] Unit tests of existing functionality.
 - [x] Be able to run node with no configuration. All requests are simply stored locally.
 - [ ] Abstract GRPC errors away

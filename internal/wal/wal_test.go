@@ -9,12 +9,12 @@ import (
 
 func TestWrite(t *testing.T) {
 	wal := NewFileWalWriter(&WalWriterConfig{
-		FileName: "test_write.bin",
-		SyncMode: SyncModeAlways,
+		Directory: "wals",
+		SyncMode:  SyncModeAlways,
 	})
 
 	t.Cleanup(func() {
-		os.Remove("test_write.bin")
+		os.Remove("wals/wal_0000.bin")
 	})
 
 	val := []byte("111")
@@ -37,12 +37,12 @@ func TestWrite(t *testing.T) {
 
 func TestRead(t *testing.T) {
 	wal := NewFileWalWriter(&WalWriterConfig{
-		FileName: "test_read.bin",
-		SyncMode: SyncModeAlways,
+		Directory: "wals",
+		SyncMode:  SyncModeAlways,
 	})
 
 	t.Cleanup(func() {
-		os.Remove("test_read.bin")
+		os.Remove("wals/wal_0000.bin")
 	})
 
 	val := []byte("111")
@@ -82,7 +82,7 @@ func TestRead(t *testing.T) {
 		}
 	}
 
-	reader := NewFileWalReader("test_read.bin")
+	reader := NewFileWalReader("wals/wal_0000.bin")
 
 	offset := int64(0)
 
@@ -119,12 +119,12 @@ func TestRead(t *testing.T) {
 
 func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 	wal := NewFileWalWriter(&WalWriterConfig{
-		FileName: "test_eof.bin",
-		SyncMode: SyncModeAlways,
+		Directory: "wals",
+		SyncMode:  SyncModeAlways,
 	})
 
 	t.Cleanup(func() {
-		os.Remove("test_eof.bin")
+		os.Remove("wals/wal_0000.bin")
 	})
 
 	val := []byte("111")
@@ -142,7 +142,7 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 		t.Fatalf("Did not expect an error when writing: %v", err)
 	}
 
-	reader := NewFileWalReader("test_eof.bin")
+	reader := NewFileWalReader("wals/wal_0000.bin")
 
 	readEntry, err := reader.Read(0)
 

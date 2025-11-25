@@ -116,8 +116,8 @@ func TestReturnsLocalStore(t *testing.T) {
 		&InitializeLocalKeyValueStoreConfig{
 			WalWriter: wal.NewFileWalWriter(
 				&wal.WalWriterConfig{
-					FileName: "wal.bin",
-					SyncMode: wal.SyncModeAlways,
+					Directory: "wals",
+					SyncMode:  wal.SyncModeAlways,
 				},
 			),
 		},
@@ -136,7 +136,7 @@ func TestReturnsLocalStore(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Remove("wal.bin")
+		os.Remove("wals/wal_0000.bin")
 	})
 }
 
@@ -163,8 +163,8 @@ func TestReturnsRemoteStore(t *testing.T) {
 		&InitializeLocalKeyValueStoreConfig{
 			WalWriter: wal.NewFileWalWriter(
 				&wal.WalWriterConfig{
-					FileName: "wal.bin",
-					SyncMode: wal.SyncModeAlways,
+					Directory: "wals",
+					SyncMode:  wal.SyncModeAlways,
 				},
 			),
 		},
@@ -183,6 +183,6 @@ func TestReturnsRemoteStore(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Remove("wal.bin")
+		os.Remove("wals/wal_0000.bin")
 	})
 }

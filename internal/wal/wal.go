@@ -13,11 +13,16 @@ import (
 type WalWriter interface {
 	Write(entry *WalEntryWrite) error
 	Close() error
+	Rotate() error
+	GetDirectory() string
+	GetFile() *os.File
 }
 
 type FileWalWriter struct {
-	file   *os.File
-	config *WalWriterConfig
+	file      *os.File
+	index     int
+	syncMode  int
+	directory string
 }
 
 const (
@@ -49,20 +54,28 @@ const (
 )
 
 type WalWriterConfig struct {
-	FileName string
-	SyncMode int
+	Directory string
+	SyncMode  int
+	Index     int
 }
 
 func NewFileWalWriter(config *WalWriterConfig) *FileWalWriter {
-	file, err := os.OpenFile(config.FileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err := os.MkdirAll(config.Directory, 0755); err != nil {
+		panic(fmt.Errorf("creating WAL directory: %w", err))
+	}
+
+	filename := fmt.Sprintf("%s/wal_%04d.bin", config.Directory, config.Index)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
 
 	if err != nil {
 		panic(err)
 	}
 
 	writer := &FileWalWriter{
-		file:   file,
-		config: config,
+		file:      file,
+		directory: config.Directory,
+		index:     config.Index,
+		syncMode:  config.SyncMode,
 	}
 
 	if config.SyncMode == SyncModePeriodic {
@@ -131,7 +144,7 @@ func (writer *FileWalWriter) Write(entry *WalEntryWrite) error {
 		panic(err)
 	}
 
-	if writer.config.SyncMode == SyncModeAlways {
+	if writer.syncMode == SyncModeAlways {
 		err = writer.file.Sync()
 
 		if err != nil {
@@ -156,6 +169,32 @@ func (writer *FileWalWriter) Close() error {
 	return writer.file.Close()
 }
 
+func (writer *FileWalWriter) Rotate() error {
+	// Close the current WAL
+	writer.file.Sync()
+	writer.file.Close()
+
+	// Increment index
+	writer.index++
+
+	// Create new file
+	newFileName := fmt.Sprintf("%s/wal_%04d.bin", writer.directory, writer.index)
+	f, err := os.OpenFile(newFileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0666)
+	if err != nil {
+		return fmt.Errorf("failed to rotate WAL: %w", err)
+	}
+	writer.file = f
+	fmt.Println("Started new WAL:", newFileName)
+	return nil
+}
+
+func (writer *FileWalWriter) GetDirectory() string {
+	return writer.directory
+}
+func (writer *FileWalWriter) GetFile() *os.File {
+	return writer.file
+}
+
 type NoopWalWriter struct {
 }
 
@@ -168,6 +207,18 @@ func (writer *NoopWalWriter) Write(entry *WalEntryWrite) error {
 }
 
 func (writer *NoopWalWriter) Close() error {
+	return nil
+}
+
+func (write *NoopWalWriter) Rotate() error {
+	return nil
+}
+
+func (writer *NoopWalWriter) GetDirectory() string {
+	return ""
+}
+
+func (writer *NoopWalWriter) GetFile() *os.File {
 	return nil
 }
 
@@ -215,10 +266,6 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 		return nil, fmt.Errorf("invalid op type: %d", opType)
 	}
 
-	fmt.Printf("opType: %v\n", opType)
-	fmt.Printf("keyLength: %v\n", keyLength)
-	fmt.Printf("valueLength: %v\n", valueLength)
-
 	dataBuffer := make([]byte, keyLength+valueLength)
 
 	_, err = reader.file.ReadAt(dataBuffer, offset+headerSize)
@@ -264,8 +311,6 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 	computedChecksum := crc32.ChecksumIEEE(entryBuf)
 
 	if storedChecksum != computedChecksum {
-		fmt.Printf("%v\n", storedChecksum)
-		fmt.Printf("%v\n", computedChecksum)
 		return nil, fmt.Errorf("checksum mismatch")
 	}
 
@@ -273,4 +318,8 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 		Entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes, ValueBytes: &valueBytes, CheckSum: storedChecksum},
 		Size:  headerSize + int64(keyLength) + int64(valueLength) + checksumSize,
 	}, nil
+}
+
+func (reader *FileWalReader) Close() error {
+	return reader.file.Close()
 }
