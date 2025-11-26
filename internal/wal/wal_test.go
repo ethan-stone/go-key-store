@@ -19,13 +19,14 @@ func TestWrite(t *testing.T) {
 		os.Remove("wals/wal_0000.bin")
 	})
 
+	key := []byte("abc")
 	val := []byte("111")
 
 	walEntry := &WalEntryWrite{
 		OpType:      Put,
 		KeyLength:   3,
 		ValueLength: 3,
-		KeyBytes:    []byte("abc"),
+		KeyBytes:    &key,
 		ValueBytes:  &val,
 	}
 
@@ -49,6 +50,8 @@ func TestRead(t *testing.T) {
 		os.Remove("wals/wal_0000.bin")
 	})
 
+	key1 := []byte("ab")
+	key2 := []byte("abcde")
 	val := []byte("111")
 
 	walEntries := []*WalEntryWrite{
@@ -56,26 +59,48 @@ func TestRead(t *testing.T) {
 			OpType:      Put,
 			KeyLength:   2,
 			ValueLength: 3,
-			KeyBytes:    []byte("ab"),
+			KeyBytes:    &key1,
 			ValueBytes:  &val,
 		},
 		{
 			OpType:      Del,
 			KeyLength:   5,
 			ValueLength: 0,
-			KeyBytes:    []byte("abcde"),
+			KeyBytes:    &key2,
+			ValueBytes:  nil,
+		},
+		{
+			OpType:      Snapshot,
+			KeyLength:   0,
+			ValueLength: 0,
+			KeyBytes:    nil,
+			ValueBytes:  nil,
+		},
+		{
+			OpType:      WalRotation,
+			KeyLength:   0,
+			ValueLength: 0,
+			KeyBytes:    nil,
 			ValueBytes:  nil,
 		},
 	}
 
 	expectedWalEntries := []*WalEntryRead{
 		{
-			Entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("ab"), ValueBytes: &val},
-			Size:  26,
+			Entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: &key1, ValueBytes: &val},
+			Size:  8 + 1 + 4 + 4 + 2 + 3 + 4,
 		},
 		{
-			Entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("abcde"), ValueBytes: nil},
-			Size:  26,
+			Entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: &key2, ValueBytes: nil},
+			Size:  8 + 1 + 4 + 4 + 5 + 4,
+		},
+		{
+			Entry: &WalEntry{OpType: Snapshot, KeyLength: 0, ValueLength: 0, KeyBytes: nil, ValueBytes: nil},
+			Size:  8 + 1 + 4 + 4 + 4,
+		},
+		{
+			Entry: &WalEntry{OpType: WalRotation, KeyLength: 0, ValueLength: 0, KeyBytes: nil, ValueBytes: nil},
+			Size:  8 + 1 + 4 + 4 + 4,
 		},
 	}
 
@@ -106,8 +131,8 @@ func TestRead(t *testing.T) {
 		if readEntry.Entry.ValueLength != expectedWalEntry.Entry.ValueLength {
 			t.Errorf("Expected value length to be %d, got %d", expectedWalEntry.Entry.ValueLength, readEntry.Entry.ValueLength)
 		}
-		if !bytes.Equal(expectedWalEntry.Entry.KeyBytes, readEntry.Entry.KeyBytes) {
-			t.Errorf("Expected key bytes to be %s, got %s", string(expectedWalEntry.Entry.KeyBytes), string(readEntry.Entry.KeyBytes))
+		if expectedWalEntry.Entry.KeyBytes != nil && readEntry.Entry.KeyBytes != nil && !bytes.Equal(*expectedWalEntry.Entry.KeyBytes, *readEntry.Entry.KeyBytes) {
+			t.Errorf("Expected key bytes to be %s, got %s", string(*expectedWalEntry.Entry.KeyBytes), string(*readEntry.Entry.KeyBytes))
 		}
 		if expectedWalEntry.Entry.ValueBytes != nil && readEntry.Entry.ValueBytes != nil && !bytes.Equal(*readEntry.Entry.ValueBytes, *expectedWalEntry.Entry.ValueBytes) {
 			t.Errorf("Expected value bytes to be %s, got %s", string(*expectedWalEntry.Entry.ValueBytes), string(*readEntry.Entry.ValueBytes))
@@ -133,13 +158,14 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 		os.Remove("wals/wal_0000.bin")
 	})
 
+	key := []byte("ab")
 	val := []byte("111")
 
 	walEntry := &WalEntryWrite{
 		OpType:      Put,
 		KeyLength:   2,
 		ValueLength: 3,
-		KeyBytes:    []byte("ab"),
+		KeyBytes:    &key,
 		ValueBytes:  &val,
 	}
 	err := wal.Write(walEntry)

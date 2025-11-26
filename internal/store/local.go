@@ -42,13 +42,14 @@ func (store *LocalKeyValueStore) Put(key string, val string) error {
 	store.Lock()
 	defer store.Unlock()
 
+	keyBytes := []byte(key)
 	valBytes := []byte(val)
 
 	store.walWriter.Write(&wal.WalEntryWrite{
 		OpType:      wal.Put,
 		KeyLength:   int32(len(key)),
 		ValueLength: int32(len(val)),
-		KeyBytes:    []byte(key),
+		KeyBytes:    &keyBytes,
 		ValueBytes:  &valBytes,
 	})
 
@@ -61,11 +62,13 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 	store.Lock()
 	defer store.Unlock()
 
+	keyBytes := []byte(key)
+
 	store.walWriter.Write(&wal.WalEntryWrite{
 		OpType:      wal.Del,
 		KeyLength:   int32(len(key)),
 		ValueLength: 0,
-		KeyBytes:    []byte(key),
+		KeyBytes:    &keyBytes,
 		ValueBytes:  nil,
 	})
 

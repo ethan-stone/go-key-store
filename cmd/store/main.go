@@ -129,9 +129,9 @@ func main() {
 
 			switch entry.Entry.OpType {
 			case wal.Put:
-				localStore.Put(string(entry.Entry.KeyBytes), string(*entry.Entry.ValueBytes))
+				localStore.Put(string(*entry.Entry.KeyBytes), string(*entry.Entry.ValueBytes))
 			case wal.Del:
-				localStore.Delete(string(entry.Entry.KeyBytes))
+				localStore.Delete(string(*entry.Entry.KeyBytes))
 			}
 
 			offset += entry.Size
