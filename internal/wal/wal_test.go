@@ -9,8 +9,10 @@ import (
 
 func TestWrite(t *testing.T) {
 	wal := NewFileWalWriter(&WalWriterConfig{
-		Directory: "wals",
-		SyncMode:  SyncModeAlways,
+		Directory:      "wals",
+		SyncMode:       SyncModeAlways,
+		Index:          0,
+		SequenceNumber: 0,
 	})
 
 	t.Cleanup(func() {
@@ -37,8 +39,10 @@ func TestWrite(t *testing.T) {
 
 func TestRead(t *testing.T) {
 	wal := NewFileWalWriter(&WalWriterConfig{
-		Directory: "wals",
-		SyncMode:  SyncModeAlways,
+		Directory:      "wals",
+		SyncMode:       SyncModeAlways,
+		Index:          0,
+		SequenceNumber: 0,
 	})
 
 	t.Cleanup(func() {
@@ -67,11 +71,11 @@ func TestRead(t *testing.T) {
 	expectedWalEntries := []*WalEntryRead{
 		{
 			Entry: &WalEntry{OpType: Put, KeyLength: 2, ValueLength: 3, KeyBytes: []byte("ab"), ValueBytes: &val},
-			Size:  18,
+			Size:  26,
 		},
 		{
 			Entry: &WalEntry{OpType: Del, KeyLength: 5, ValueLength: 0, KeyBytes: []byte("abcde"), ValueBytes: nil},
-			Size:  18,
+			Size:  26,
 		},
 	}
 
@@ -119,8 +123,10 @@ func TestRead(t *testing.T) {
 
 func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 	wal := NewFileWalWriter(&WalWriterConfig{
-		Directory: "wals",
-		SyncMode:  SyncModeAlways,
+		Directory:      "wals",
+		SyncMode:       SyncModeAlways,
+		Index:          0,
+		SequenceNumber: 0,
 	})
 
 	t.Cleanup(func() {

@@ -19,10 +19,11 @@ type WalWriter interface {
 }
 
 type FileWalWriter struct {
-	file      *os.File
-	index     int
-	syncMode  int
-	directory string
+	file           *os.File
+	index          int
+	sequenceNumber uint64
+	syncMode       int
+	directory      string
 }
 
 const (
@@ -31,12 +32,13 @@ const (
 )
 
 type WalEntry struct {
-	OpType      byte    // 1 for PUT. 2 for DEL.
-	KeyLength   int32   // 4 bytes
-	ValueLength int32   // 4 bytes
-	KeyBytes    []byte  // variable
-	ValueBytes  *[]byte // variable
-	CheckSum    uint32  // 4 bytes
+	SequenceNumber uint64  // 8 bytes
+	OpType         byte    // 1 for PUT. 2 for DEL.
+	KeyLength      int32   // 4 bytes
+	ValueLength    int32   // 4 bytes
+	KeyBytes       []byte  // variable
+	ValueBytes     *[]byte // variable
+	CheckSum       uint32  // 4 bytes
 }
 
 type WalEntryWrite struct {
@@ -54,9 +56,10 @@ const (
 )
 
 type WalWriterConfig struct {
-	Directory string
-	SyncMode  int
-	Index     int
+	Directory      string
+	SyncMode       int
+	Index          int
+	SequenceNumber uint64
 }
 
 func NewFileWalWriter(config *WalWriterConfig) *FileWalWriter {
@@ -72,10 +75,11 @@ func NewFileWalWriter(config *WalWriterConfig) *FileWalWriter {
 	}
 
 	writer := &FileWalWriter{
-		file:      file,
-		directory: config.Directory,
-		index:     config.Index,
-		syncMode:  config.SyncMode,
+		file:           file,
+		directory:      config.Directory,
+		index:          config.Index,
+		syncMode:       config.SyncMode,
+		sequenceNumber: config.SequenceNumber,
 	}
 
 	if config.SyncMode == SyncModePeriodic {
@@ -94,7 +98,13 @@ func (writer *FileWalWriter) Write(entry *WalEntryWrite) error {
 
 	buf := new(bytes.Buffer)
 
-	err := binary.Write(buf, binary.LittleEndian, entry.OpType)
+	err := binary.Write(buf, binary.LittleEndian, writer.sequenceNumber)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = binary.Write(buf, binary.LittleEndian, entry.OpType)
 
 	if err != nil {
 		panic(err)
@@ -155,6 +165,8 @@ func (writer *FileWalWriter) Write(entry *WalEntryWrite) error {
 	if err != nil {
 		panic(err)
 	}
+
+	writer.sequenceNumber++
 
 	return nil
 }
@@ -244,11 +256,26 @@ func NewFileWalReader(fileName string) *FileWalReader {
 }
 
 func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
+	sequenceNumberSize := int64(8)
 	headerSize := int64(9)
 	checksumSize := int64(4)
+
+	sequenceNumberBuffer := make([]byte, sequenceNumberSize)
+
+	_, err := reader.file.ReadAt(sequenceNumberBuffer, offset)
+
+	if err != nil {
+		if err == io.EOF {
+			return nil, io.EOF
+		}
+		panic(err)
+	}
+
+	sequenceNumber := binary.LittleEndian.Uint64(sequenceNumberBuffer)
+
 	headerBuffer := make([]byte, headerSize)
 
-	_, err := reader.file.ReadAt(headerBuffer, offset)
+	_, err = reader.file.ReadAt(headerBuffer, offset+sequenceNumberSize)
 
 	if err != nil {
 		if err == io.EOF {
@@ -268,7 +295,7 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 
 	dataBuffer := make([]byte, keyLength+valueLength)
 
-	_, err = reader.file.ReadAt(dataBuffer, offset+headerSize)
+	_, err = reader.file.ReadAt(dataBuffer, offset+sequenceNumberSize+headerSize)
 
 	if err != nil {
 		if err == io.EOF {
@@ -288,7 +315,7 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 
 	checksumBuf := make([]byte, checksumSize)
 
-	_, err = reader.file.ReadAt(checksumBuf, offset+headerSize+int64(keyLength)+int64(valueLength))
+	_, err = reader.file.ReadAt(checksumBuf, offset+sequenceNumberSize+headerSize+int64(keyLength)+int64(valueLength))
 
 	if err != nil {
 		if err == io.EOF {
@@ -297,7 +324,7 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 		panic(err)
 	}
 
-	entryBuf := make([]byte, headerSize+int64(keyLength)+int64(valueLength))
+	entryBuf := make([]byte, sequenceNumberSize+headerSize+int64(keyLength)+int64(valueLength))
 	_, err = reader.file.ReadAt(entryBuf, offset)
 
 	if err != nil {
@@ -315,8 +342,8 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 	}
 
 	return &WalEntryRead{
-		Entry: &WalEntry{OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes, ValueBytes: &valueBytes, CheckSum: storedChecksum},
-		Size:  headerSize + int64(keyLength) + int64(valueLength) + checksumSize,
+		Entry: &WalEntry{SequenceNumber: sequenceNumber, OpType: opType, KeyLength: int32(keyLength), ValueLength: int32(valueLength), KeyBytes: keyBytes, ValueBytes: &valueBytes, CheckSum: storedChecksum},
+		Size:  sequenceNumberSize + headerSize + int64(keyLength) + int64(valueLength) + checksumSize,
 	}, nil
 }
 

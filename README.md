@@ -12,7 +12,16 @@ This repo is an attempt to learn many of the concepts related to distributed sys
 - [x] Consider making a "KeyValueStoreFactory" that can get either a "LocalKeyValueStore" or a "RemoteKeyValueStore". Local means the data is stored on this node, while Remote means it's stored on a different node. \*Update definitely need to do this. The local store needs to be decoupled from RPC, because the RPC server side is going to need to reference the local store. Otherwise we'd have a circular module dependency.
 - [x] Need to handle set and retrieving cluster config better. There are dangling pointers everywhere. Probably need to use a "configurationManager" much like "rpcClientManager"
 - [x] Implement WAL and rebuild on start up. For now do a super durable WAL where we first commit the log and then update in memory DB.
-- [ ] Rotate WAL files when they hit certain size.
+- [x] Rotate WAL files when they hit certain size.
+- [ ] Add an index to wal entries for easier navigation.
+- [ ] Replication
+  - [ ] RPC call for AppendWalEntries
+  - [ ] Configuration for nodes of whether it is a leader or following (no automatic failover)
+  - [ ] Add to WalWriter a map of ReplicaStreams (implemented via Go channels). After writing to Wal, send entry to channel which is handled by another task that sends the entry to the replica. This map will empty in replicas.
+  - [ ] Include snapshot and WAL rotation behavior in stream.
+  - [ ] Implement a RequestFullSync rpc method that replicas can call the primary with. This will start a go routine that will send the latest snapshot (likely chunked), and then replay the WAL. Will need some sort of coorelation ID for certain stages of this job.
+    - [ ] SaveSnapshotChunk method that sends a chunk of a snapshot and replica saves it. One parameter is the FullSyncJobID.
+    - [ ] How to transfer from reading from the Wal backlog to real-time replication? Maybe reuse the same ReplicaStream channel, queue all the existing wal entries, and block sending new wal entries to the channel until at least all Wal entries are queued? Just have a simple lock on the stream?
 - [ ] Unit tests of existing functionality.
 - [x] Be able to run node with no configuration. All requests are simply stored locally.
 - [ ] Abstract GRPC errors away
