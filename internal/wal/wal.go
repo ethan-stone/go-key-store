@@ -16,6 +16,8 @@ type WalWriter interface {
 	Rotate() error
 	GetDirectory() string
 	GetFile() *os.File
+	GetSequenceNumber() uint64
+	SetSequenceNumber(sequenceNumber uint64)
 }
 
 type FileWalWriter struct {
@@ -30,6 +32,9 @@ const (
 	Put = 1
 	Del = 2
 )
+
+// Example
+// [sequenceNumber (8 bytes)][opType (1 byte)][keyLength (4 bytes)][valueLength (4 bytes)][keyBytes (variable)][valueBytes (variable)][checksum (4 bytes)]
 
 type WalEntry struct {
 	SequenceNumber uint64  // 8 bytes
@@ -207,6 +212,14 @@ func (writer *FileWalWriter) GetFile() *os.File {
 	return writer.file
 }
 
+func (writer *FileWalWriter) GetSequenceNumber() uint64 {
+	return writer.sequenceNumber
+}
+
+func (writer *FileWalWriter) SetSequenceNumber(sequenceNumber uint64) {
+	writer.sequenceNumber = sequenceNumber
+}
+
 type NoopWalWriter struct {
 }
 
@@ -232,6 +245,13 @@ func (writer *NoopWalWriter) GetDirectory() string {
 
 func (writer *NoopWalWriter) GetFile() *os.File {
 	return nil
+}
+
+func (writer *NoopWalWriter) GetSequenceNumber() uint64 {
+	return 0
+}
+
+func (writer *NoopWalWriter) SetSequenceNumber(sequenceNumber uint64) {
 }
 
 type WalEntryRead struct {

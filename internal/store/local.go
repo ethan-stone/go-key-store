@@ -78,6 +78,15 @@ func (store *LocalKeyValueStore) SetWalWriter(walWriter wal.WalWriter) {
 	Store.walWriter = walWriter
 }
 
+// Example snapshot
+// sequenceNumber is the sequence number of the last WAL entry that is included in the snapshot.
+// entryCount is the number of entries in the snapshot.
+// keyLength is the length of the key in bytes.
+// valueLength is the length of the value in bytes.
+// keyBytes is the bytes of the key.
+// valueBytes is the bytes of the value.
+// [sequenceNumber (8 bytes)][entryCount (8 bytes)][keyLength (4 bytes)][valueLength (4 bytes)][keyBytes (variable)][valueBytes (variable)]...
+
 func (store *LocalKeyValueStore) TakeSnapshot(path string) error {
 	store.RLock()
 	defer store.RUnlock()
@@ -86,6 +95,12 @@ func (store *LocalKeyValueStore) TakeSnapshot(path string) error {
 
 	if err != nil {
 		return err
+	}
+
+	sequenceNumber := store.walWriter.GetSequenceNumber()
+
+	if err := binary.Write(tempFile, binary.LittleEndian, sequenceNumber); err != nil {
+		return fmt.Errorf("writing sequence number: %w", err)
 	}
 
 	count := uint64(len(store.data))
@@ -176,6 +191,7 @@ func (store *LocalKeyValueStore) StartCheckpointManager(interval time.Duration, 
 
 func (store *LocalKeyValueStore) LoadFromSnapshot(path string) error {
 	f, err := os.Open(path)
+
 	if os.IsNotExist(err) {
 		return nil
 	}
@@ -183,7 +199,13 @@ func (store *LocalKeyValueStore) LoadFromSnapshot(path string) error {
 	if err != nil {
 		return err
 	}
+
 	defer f.Close()
+
+	var sequenceNumber uint64
+	if err := binary.Read(f, binary.LittleEndian, &sequenceNumber); err != nil {
+		return fmt.Errorf("reading sequence number: %w", err)
+	}
 
 	var count uint64
 	if err := binary.Read(f, binary.LittleEndian, &count); err != nil {

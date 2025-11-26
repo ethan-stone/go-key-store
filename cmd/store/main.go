@@ -109,6 +109,8 @@ func main() {
 	walFiles, _ := filepath.Glob("wals/wal_*.bin")
 	sort.Strings(walFiles)
 
+	sequenceNumber := uint64(0)
+
 	for _, walPath := range walFiles {
 		fmt.Println("replaying", walPath)
 		walReader := wal.NewFileWalReader(walPath)
@@ -133,17 +135,23 @@ func main() {
 			}
 
 			offset += entry.Size
+
+			sequenceNumber = entry.Entry.SequenceNumber
 		}
 		walReader.Close()
 
 	}
 
-	latestWalFile := walFiles[len(walFiles)-1]
-	latestWalFileIndex := strings.Split(strings.Split(latestWalFile, "wal_")[1], ".bin")[0]
-	nextIndex, err := strconv.Atoi(latestWalFileIndex)
+	nextIndex := 0
 
-	if err != nil {
-		log.Fatalf("failed to convert latest wal file index to int %v", err)
+	if len(walFiles) > 0 {
+		latestWalFile := walFiles[len(walFiles)-1]
+		latestWalFileIndex := strings.Split(strings.Split(latestWalFile, "wal_")[1], ".bin")[0]
+		nextIndex, err = strconv.Atoi(latestWalFileIndex)
+
+		if err != nil {
+			log.Fatalf("failed to convert latest wal file index to int %v", err)
+		}
 	}
 
 	nextIndex++
@@ -152,9 +160,10 @@ func main() {
 	// For max efficiency, we could try to reuse the most recent WAL file if valid/healthy, but not right now.
 	localStore.SetWalWriter(wal.NewFileWalWriter(
 		&wal.WalWriterConfig{
-			Directory: "wals",
-			SyncMode:  wal.SyncModeAlways,
-			Index:     nextIndex,
+			Directory:      "wals",
+			SyncMode:       wal.SyncModeAlways,
+			Index:          nextIndex,
+			SequenceNumber: sequenceNumber + 1,
 		},
 	))
 
