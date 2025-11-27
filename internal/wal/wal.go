@@ -248,6 +248,18 @@ func (writer *FileWalWriter) Close() error {
 
 func (writer *FileWalWriter) Rotate() error {
 	// Close the current WAL
+	err := writer.Write(&WalEntryWrite{
+		OpType:      WalRotation,
+		KeyLength:   0,
+		ValueLength: 0,
+		KeyBytes:    nil,
+		ValueBytes:  nil,
+	})
+
+	if err != nil {
+		return err
+	}
+
 	writer.file.Sync()
 	writer.file.Close()
 

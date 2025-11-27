@@ -100,6 +100,18 @@ func (store *LocalKeyValueStore) TakeSnapshot(path string) error {
 		return err
 	}
 
+	err = store.walWriter.Write(&wal.WalEntryWrite{
+		OpType:      wal.Snapshot,
+		KeyLength:   0,
+		ValueLength: 0,
+		KeyBytes:    nil,
+		ValueBytes:  nil,
+	})
+
+	if err != nil {
+		return err
+	}
+
 	sequenceNumber := store.walWriter.GetSequenceNumber()
 
 	if err := binary.Write(tempFile, binary.LittleEndian, sequenceNumber); err != nil {
