@@ -127,12 +127,7 @@ func main() {
 				panic(err)
 			}
 
-			switch entry.Entry.OpType {
-			case wal.Put:
-				localStore.Put(string(*entry.Entry.KeyBytes), string(*entry.Entry.ValueBytes))
-			case wal.Del:
-				localStore.Delete(string(*entry.Entry.KeyBytes))
-			}
+			localStore.ApplyWalEntry(entry.Entry)
 
 			offset += entry.Size
 
@@ -163,10 +158,11 @@ func main() {
 			Directory:      "wals",
 			SyncMode:       wal.SyncModeAlways,
 			Index:          nextIndex,
-			SequenceNumber: sequenceNumber + 1,
+			SequenceNumber: sequenceNumber,
 		},
 	))
 
+	localStore.SubscribeToWalEntries()
 	localStore.StartCheckpointManager(time.Second*1, 64*1024*1024) // 64MB
 
 	httpServer := http_server.NewHttpServer(

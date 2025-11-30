@@ -7,13 +7,15 @@ import (
 	"hash/crc32"
 	"io"
 	"os"
+	"sync"
 	"time"
 )
 
 type WalWriter interface {
-	Write(entry *WalEntryWrite) error
+	Write(entry *WalEntryWrite) (uint64, error)
 	Close() error
 	Rotate() error
+	Subscribe() <-chan *WalEntry
 	GetDirectory() string
 	GetFile() *os.File
 	GetSequenceNumber() uint64
@@ -21,11 +23,15 @@ type WalWriter interface {
 }
 
 type FileWalWriter struct {
+	mu             sync.Mutex
 	file           *os.File
 	index          int
 	sequenceNumber uint64
 	syncMode       int
 	directory      string
+
+	subscribers   []chan *WalEntry
+	subscribersMu sync.RWMutex
 }
 
 const (
@@ -101,60 +107,93 @@ func NewFileWalWriter(config *WalWriterConfig) *FileWalWriter {
 	return writer
 }
 
-func (writer *FileWalWriter) Write(entry *WalEntryWrite) error {
+func (writer *FileWalWriter) Write(entry *WalEntryWrite) (uint64, error) {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+
+	writer.sequenceNumber++
+
+	sequenceNumber := writer.sequenceNumber
+
 	switch entry.OpType {
 	case Put:
 		buf, err := writer.serializePutEntry(entry)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		_, err = writer.file.Write(buf)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	case Del:
 		buf, err := writer.serializeDelEntry(entry)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		_, err = writer.file.Write(buf)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	case Snapshot:
 		buf, err := writer.serializeSnapshotEntry()
 		if err != nil {
-			return err
+			return 0, err
 		}
 		_, err = writer.file.Write(buf)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	case WalRotation:
 		buf, err := writer.serializeWalRotationEntry()
 		if err != nil {
-			return err
+			return 0, err
 		}
 		_, err = writer.file.Write(buf)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
 	if writer.syncMode == SyncModeAlways {
 		err := writer.file.Sync()
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	writer.sequenceNumber++
+	writer.subscribersMu.RLock()
+	defer writer.subscribersMu.RUnlock()
 
-	return nil
+	for _, subscriber := range writer.subscribers {
+		select {
+		case subscriber <- &WalEntry{
+			SequenceNumber: sequenceNumber,
+			OpType:         entry.OpType,
+			KeyLength:      entry.KeyLength,
+			ValueLength:    entry.ValueLength,
+			KeyBytes:       entry.KeyBytes,
+			ValueBytes:     entry.ValueBytes,
+			CheckSum:       0,
+		}:
+		default:
+		}
+	}
+
+	return sequenceNumber, nil
+}
+
+func (write *FileWalWriter) Subscribe() <-chan *WalEntry {
+	ch := make(chan *WalEntry, 16)
+
+	write.subscribersMu.Lock()
+	defer write.subscribersMu.Unlock()
+
+	write.subscribers = append(write.subscribers, ch)
+
+	return ch
 }
 
 func (writer *FileWalWriter) serializePutEntry(entry *WalEntryWrite) ([]byte, error) {
-
 	if entry.OpType != Put {
 		return nil, fmt.Errorf("serializePutEntry can only be used for Put operations")
 	}
@@ -237,6 +276,9 @@ func (writer *FileWalWriter) serializeWalRotationEntry() ([]byte, error) {
 }
 
 func (writer *FileWalWriter) Close() error {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+
 	err := writer.file.Sync()
 
 	if err != nil {
@@ -247,8 +289,11 @@ func (writer *FileWalWriter) Close() error {
 }
 
 func (writer *FileWalWriter) Rotate() error {
+	writer.mu.Lock()
+	defer writer.mu.Unlock()
+
 	// Close the current WAL
-	err := writer.Write(&WalEntryWrite{
+	_, err := writer.Write(&WalEntryWrite{
 		OpType:      WalRotation,
 		KeyLength:   0,
 		ValueLength: 0,
@@ -299,7 +344,11 @@ func NewNoopWalWriter() *NoopWalWriter {
 	return &NoopWalWriter{}
 }
 
-func (writer *NoopWalWriter) Write(entry *WalEntryWrite) error {
+func (writer *NoopWalWriter) Write(entry *WalEntryWrite) (uint64, error) {
+	return 0, nil
+}
+
+func (writer *NoopWalWriter) Subscribe() <-chan *WalEntry {
 	return nil
 }
 

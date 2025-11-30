@@ -15,14 +15,16 @@ import (
 )
 
 type LocalKeyValueStore struct {
-	sync.RWMutex
-	data      map[string]string
-	walWriter wal.WalWriter
+	mu                        sync.RWMutex
+	data                      map[string]string
+	walWriter                 wal.WalWriter
+	lastAppliedSequenceNumber uint64
+	cond                      *sync.Cond
 }
 
 func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
-	store.RLock()
-	defer store.RUnlock()
+	store.mu.RLock()
+	defer store.mu.RUnlock()
 	val, ok := store.data[key]
 
 	if !ok {
@@ -39,13 +41,10 @@ func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
 }
 
 func (store *LocalKeyValueStore) Put(key string, val string) error {
-	store.Lock()
-	defer store.Unlock()
-
 	keyBytes := []byte(key)
 	valBytes := []byte(val)
 
-	store.walWriter.Write(&wal.WalEntryWrite{
+	sequenceNumber, err := store.walWriter.Write(&wal.WalEntryWrite{
 		OpType:      wal.Put,
 		KeyLength:   int32(len(key)),
 		ValueLength: int32(len(val)),
@@ -53,18 +52,27 @@ func (store *LocalKeyValueStore) Put(key string, val string) error {
 		ValueBytes:  &valBytes,
 	})
 
-	store.data[key] = val
+	if err != nil {
+		return err
+	}
+
+	store.WaitForApply(sequenceNumber)
 
 	return nil
 }
 
-func (store *LocalKeyValueStore) Delete(key string) error {
-	store.Lock()
-	defer store.Unlock()
+func (store *LocalKeyValueStore) put(key string, val string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
 
+	store.data[key] = val
+	return nil
+}
+
+func (store *LocalKeyValueStore) Delete(key string) error {
 	keyBytes := []byte(key)
 
-	store.walWriter.Write(&wal.WalEntryWrite{
+	sequenceNumber, err := store.walWriter.Write(&wal.WalEntryWrite{
 		OpType:      wal.Del,
 		KeyLength:   int32(len(key)),
 		ValueLength: 0,
@@ -72,7 +80,41 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 		ValueBytes:  nil,
 	})
 
+	if err != nil {
+		return err
+	}
+
+	store.WaitForApply(sequenceNumber)
+
+	return nil
+}
+
+func (store *LocalKeyValueStore) delete(key string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+
 	delete(store.data, key)
+	return nil
+}
+
+func (store *LocalKeyValueStore) ApplyWalEntry(entry *wal.WalEntry) error {
+
+	switch entry.OpType {
+	case wal.Put:
+		store.put(string(*entry.KeyBytes), string(*entry.ValueBytes))
+	case wal.Del:
+		store.delete(string(*entry.KeyBytes))
+	case wal.Snapshot:
+		store.takeSnapshot(entry.SequenceNumber, "snapshot.bin")
+	default:
+		return fmt.Errorf("invalid OpType: %d", entry.OpType)
+	}
+
+	store.lastAppliedSequenceNumber = entry.SequenceNumber
+
+	store.cond.L.Lock()
+	store.cond.Broadcast()
+	store.cond.L.Unlock()
 
 	return nil
 }
@@ -90,19 +132,8 @@ func (store *LocalKeyValueStore) SetWalWriter(walWriter wal.WalWriter) {
 // valueBytes is the bytes of the value.
 // [sequenceNumber (8 bytes)][entryCount (8 bytes)][keyLength (4 bytes)][valueLength (4 bytes)][keyBytes (variable)][valueBytes (variable)]...
 
-func (store *LocalKeyValueStore) TakeSnapshot(path string) error {
-	store.RLock()
-	defer store.RUnlock()
-
-	tempFile, err := os.CreateTemp("", "snapshot-*.bin")
-
-	if err != nil {
-		return err
-	}
-
-	sequenceNumber := store.walWriter.GetSequenceNumber()
-
-	err = store.walWriter.Write(&wal.WalEntryWrite{
+func (store *LocalKeyValueStore) TakeSnapshot() error {
+	sequenceNumber, err := store.walWriter.Write(&wal.WalEntryWrite{
 		OpType:      wal.Snapshot,
 		KeyLength:   0,
 		ValueLength: 0,
@@ -114,8 +145,23 @@ func (store *LocalKeyValueStore) TakeSnapshot(path string) error {
 		return err
 	}
 
-	if err := binary.Write(tempFile, binary.LittleEndian, sequenceNumber); err != nil {
-		return fmt.Errorf("writing sequence number: %w", err)
+	store.WaitForApply(sequenceNumber)
+
+	return nil
+}
+
+func (store *LocalKeyValueStore) takeSnapshot(lastSequenceNumber uint64, path string) error {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+
+	tempFile, err := os.CreateTemp("", "snapshot-*.bin")
+
+	if err != nil {
+		return err
+	}
+
+	if err := binary.Write(tempFile, binary.LittleEndian, lastSequenceNumber); err != nil {
+		return fmt.Errorf("writing last sequence number: %w", err)
 	}
 
 	count := uint64(len(store.data))
@@ -161,7 +207,7 @@ func (store *LocalKeyValueStore) CheckpointAndRotate() error {
 	fmt.Println("Starting checkpoint...")
 
 	// 1. Write the snapshot
-	if err := store.TakeSnapshot("snapshot.bin"); err != nil {
+	if err := store.TakeSnapshot(); err != nil {
 		return fmt.Errorf("snapshot failed: %w", err)
 	}
 
@@ -204,6 +250,17 @@ func (store *LocalKeyValueStore) StartCheckpointManager(interval time.Duration, 
 	}()
 }
 
+func (store *LocalKeyValueStore) SubscribeToWalEntries() {
+	go func() {
+		for entry := range store.walWriter.Subscribe() {
+			err := store.ApplyWalEntry(entry)
+			if err != nil {
+				fmt.Println("error applying wal entry:", err)
+			}
+		}
+	}()
+}
+
 func (store *LocalKeyValueStore) LoadFromSnapshot(path string) error {
 	f, err := os.Open(path)
 
@@ -237,13 +294,21 @@ func (store *LocalKeyValueStore) LoadFromSnapshot(path string) error {
 		io.ReadFull(f, key)
 		io.ReadFull(f, val)
 
-		store.Put(string(key), string(val))
+		store.put(string(key), string(val))
 	}
 	return nil
 }
 
 func (store *LocalKeyValueStore) Close() error {
 	return store.walWriter.Close()
+}
+
+func (store *LocalKeyValueStore) WaitForApply(target uint64) {
+	store.cond.L.Lock()
+	for store.lastAppliedSequenceNumber < target {
+		store.cond.Wait()
+	}
+	store.cond.L.Unlock()
 }
 
 var Store *LocalKeyValueStore
@@ -255,8 +320,11 @@ type InitializeLocalKeyValueStoreConfig struct {
 func InitializeLocalKeyValueStore(config *InitializeLocalKeyValueStoreConfig) *LocalKeyValueStore {
 
 	Store = &LocalKeyValueStore{
-		data:      make(map[string]string),
-		walWriter: config.WalWriter,
+		mu:                        sync.RWMutex{},
+		data:                      make(map[string]string),
+		walWriter:                 config.WalWriter,
+		lastAppliedSequenceNumber: 0,
+		cond:                      sync.NewCond(&sync.Mutex{}),
 	}
 
 	return Store

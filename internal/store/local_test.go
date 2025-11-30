@@ -2,6 +2,7 @@ package store
 
 import (
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/ethan-stone/go-key-store/internal/wal"
@@ -9,13 +10,21 @@ import (
 )
 
 func TestPut(t *testing.T) {
+	randomWalDirectory := "wals_" + uuid.New().String()
+
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
-			Directory: "wals",
-			SyncMode:  wal.SyncModeAlways,
+			Directory:      randomWalDirectory,
+			SyncMode:       wal.SyncModeAlways,
+			Index:          0,
+			SequenceNumber: 0,
 		}),
+		cond:                      sync.NewCond(&sync.Mutex{}),
+		lastAppliedSequenceNumber: 0,
 	}
+
+	store.SubscribeToWalEntries()
 
 	err := store.Put("a", "b")
 
@@ -24,18 +33,26 @@ func TestPut(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Remove("wals/wal_0000.bin")
+		os.RemoveAll(randomWalDirectory)
 	})
 }
 
 func TestGetShouldReturnNotOkWhenKeyNotFound(t *testing.T) {
+	randomWalDirectory := "wals_" + uuid.New().String()
+
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
-			Directory: "wals",
-			SyncMode:  wal.SyncModeAlways,
+			Directory:      randomWalDirectory,
+			SyncMode:       wal.SyncModeAlways,
+			Index:          0,
+			SequenceNumber: 0,
 		}),
+		cond:                      sync.NewCond(&sync.Mutex{}),
+		lastAppliedSequenceNumber: 0,
 	}
+
+	store.SubscribeToWalEntries()
 
 	r, err := store.Get("a")
 
@@ -48,18 +65,26 @@ func TestGetShouldReturnNotOkWhenKeyNotFound(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Remove("wals/wal_0000.bin")
+		os.RemoveAll(randomWalDirectory)
 	})
 }
 
 func TestShouldReturnOkWhenKeyFound(t *testing.T) {
+	randomWalDirectory := "wals_" + uuid.New().String()
+
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
-			Directory: "wals",
-			SyncMode:  wal.SyncModeAlways,
+			Directory:      randomWalDirectory,
+			SyncMode:       wal.SyncModeAlways,
+			Index:          0,
+			SequenceNumber: 0,
 		}),
+		cond:                      sync.NewCond(&sync.Mutex{}),
+		lastAppliedSequenceNumber: 0,
 	}
+
+	store.SubscribeToWalEntries()
 
 	err := store.Put("a", "b")
 
@@ -78,18 +103,26 @@ func TestShouldReturnOkWhenKeyFound(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Remove("wals/wal_0000.bin")
+		os.RemoveAll(randomWalDirectory)
 	})
 }
 
 func TestShouldDelete(t *testing.T) {
+	randomWalDirectory := "wals_" + uuid.New().String()
+
 	store := &LocalKeyValueStore{
 		data: make(map[string]string),
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
-			Directory: "wals",
-			SyncMode:  wal.SyncModeAlways,
+			Directory:      randomWalDirectory,
+			SyncMode:       wal.SyncModeAlways,
+			Index:          0,
+			SequenceNumber: 0,
 		}),
+		cond:                      sync.NewCond(&sync.Mutex{}),
+		lastAppliedSequenceNumber: 0,
 	}
+
+	store.SubscribeToWalEntries()
 
 	err := store.Put("a", "b")
 
@@ -124,17 +157,26 @@ func TestShouldDelete(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Remove("wals/wal_0000.bin")
+		os.RemoveAll(randomWalDirectory)
 	})
 }
 
 func TestShouldTakeSnapshot(t *testing.T) {
-	randomSnapshotName := "snapshot_" + uuid.New().String() + ".bin"
+	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data:      make(map[string]string),
-		walWriter: wal.NewNoopWalWriter(),
+		data: make(map[string]string),
+		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
+			Directory:      randomWalDirectory,
+			SyncMode:       wal.SyncModeAlways,
+			Index:          0,
+			SequenceNumber: 0,
+		}),
+		cond:                      sync.NewCond(&sync.Mutex{}),
+		lastAppliedSequenceNumber: 0,
 	}
+
+	store.SubscribeToWalEntries()
 
 	err := store.Put("a", "b")
 
@@ -142,24 +184,34 @@ func TestShouldTakeSnapshot(t *testing.T) {
 		t.Fatalf("Did not expect an error when putting into store %v", err)
 	}
 
-	err = store.TakeSnapshot(randomSnapshotName)
+	err = store.TakeSnapshot()
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when taking snapshot %v", err)
 	}
 
 	t.Cleanup(func() {
-		os.Remove(randomSnapshotName)
+		os.Remove("snapshot.bin")
+		os.RemoveAll(randomWalDirectory)
 	})
 }
 
 func TestShouldLoadFromSnapshot(t *testing.T) {
-	randomSnapshotName := "snapshot_" + uuid.New().String() + ".bin"
+	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data:      make(map[string]string),
-		walWriter: wal.NewNoopWalWriter(),
+		data: make(map[string]string),
+		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
+			Directory:      randomWalDirectory,
+			SyncMode:       wal.SyncModeAlways,
+			Index:          0,
+			SequenceNumber: 0,
+		}),
+		cond:                      sync.NewCond(&sync.Mutex{}),
+		lastAppliedSequenceNumber: 0,
 	}
+
+	store.SubscribeToWalEntries()
 
 	// write 100 random keys to the store
 	keys := make([]string, 0, 100)
@@ -172,7 +224,7 @@ func TestShouldLoadFromSnapshot(t *testing.T) {
 		}
 	}
 
-	err := store.TakeSnapshot(randomSnapshotName)
+	err := store.TakeSnapshot()
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when taking snapshot %v", err)
@@ -183,7 +235,9 @@ func TestShouldLoadFromSnapshot(t *testing.T) {
 		walWriter: wal.NewNoopWalWriter(),
 	}
 
-	err = newStore.LoadFromSnapshot(randomSnapshotName)
+	newStore.SubscribeToWalEntries()
+
+	err = newStore.LoadFromSnapshot("snapshot.bin")
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when loading from snapshot %v", err)
@@ -214,6 +268,7 @@ func TestShouldLoadFromSnapshot(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		os.Remove(randomSnapshotName)
+		os.Remove("snapshot.bin")
+		os.RemoveAll(randomWalDirectory)
 	})
 }

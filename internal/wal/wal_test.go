@@ -30,7 +30,7 @@ func TestWrite(t *testing.T) {
 		ValueBytes:  &val,
 	}
 
-	err := wal.Write(walEntry)
+	_, err := wal.Write(walEntry)
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when writing")
@@ -105,7 +105,7 @@ func TestRead(t *testing.T) {
 	}
 
 	for _, walEntry := range walEntries {
-		err := wal.Write(walEntry)
+		_, err := wal.Write(walEntry)
 		if err != nil {
 			t.Fatalf("Did not expect an error when writing")
 		}
@@ -168,7 +168,7 @@ func TestShouldGetEOFWhenReadingPastEnd(t *testing.T) {
 		KeyBytes:    &key,
 		ValueBytes:  &val,
 	}
-	err := wal.Write(walEntry)
+	_, err := wal.Write(walEntry)
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when writing: %v", err)
