@@ -327,6 +327,10 @@ func (store *LocalKeyValueStore) WaitForApply(target uint64) {
 	store.cond.L.Unlock()
 }
 
+func (store *LocalKeyValueStore) GetWalWriter() wal.WalWriter {
+	return store.walWriter
+}
+
 var Store *LocalKeyValueStore
 
 type InitializeLocalKeyValueStoreConfig struct {

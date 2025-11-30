@@ -180,6 +180,20 @@ func (rpcClient *GrpcClient) GetClusterConfig(req *GetClusterConfigRequest) (*Ge
 	return r, nil
 }
 
+func (rpcClient *GrpcClient) AppendWalEntry(req *AppendWalEntryRequest) (*AppendWalEntryResponse, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	r, err := rpcClient.client.AppendWalEntry(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("AppendWalEntry result ok = %t", r.GetOk())
+
+	return r, nil
+}
+
 type RpcClientConfig struct {
 	Address string
 }

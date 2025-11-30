@@ -80,6 +80,23 @@ message GetClusterConfigResponse {
     repeated NodeConfig other_nodes = 3;
 }
 
+message AppendWalEntryRequest {
+    WalEntry wal_entry = 1;
+}
+
+message WalEntry {
+    uint64 sequence_number = 1;
+    uint32 op_type = 2;
+    int32 key_length = 3;
+    int32 value_length = 4;
+    bytes key_bytes = 5;
+    bytes value_bytes = 6;
+}
+
+message AppendWalEntryResponse {
+    bool ok = 1;
+}
+
 service StoreService {
     rpc Ping(PingRequest) returns (PingResponse) {} 
     rpc Get(GetRequest) returns (GetResponse) {}
@@ -88,4 +105,5 @@ service StoreService {
     rpc Gossip(GossipRequest) returns (GossipResponse) {}
     rpc SetClusterConfig(SetClusterConfigRequest) returns (SetClusterConfigResponse) {}
     rpc GetClusterConfig (GetClusterConfigRequest) returns (GetClusterConfigResponse) {}
+    rpc AppendWalEntry(AppendWalEntryRequest) returns (AppendWalEntryResponse) {}
 }

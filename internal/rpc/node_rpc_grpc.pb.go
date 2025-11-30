@@ -26,6 +26,7 @@ const (
 	StoreService_Gossip_FullMethodName           = "/node_rpc.StoreService/Gossip"
 	StoreService_SetClusterConfig_FullMethodName = "/node_rpc.StoreService/SetClusterConfig"
 	StoreService_GetClusterConfig_FullMethodName = "/node_rpc.StoreService/GetClusterConfig"
+	StoreService_AppendWalEntry_FullMethodName   = "/node_rpc.StoreService/AppendWalEntry"
 )
 
 // StoreServiceClient is the client API for StoreService service.
@@ -39,6 +40,7 @@ type StoreServiceClient interface {
 	Gossip(ctx context.Context, in *GossipRequest, opts ...grpc.CallOption) (*GossipResponse, error)
 	SetClusterConfig(ctx context.Context, in *SetClusterConfigRequest, opts ...grpc.CallOption) (*SetClusterConfigResponse, error)
 	GetClusterConfig(ctx context.Context, in *GetClusterConfigRequest, opts ...grpc.CallOption) (*GetClusterConfigResponse, error)
+	AppendWalEntry(ctx context.Context, in *AppendWalEntryRequest, opts ...grpc.CallOption) (*AppendWalEntryResponse, error)
 }
 
 type storeServiceClient struct {
@@ -119,6 +121,16 @@ func (c *storeServiceClient) GetClusterConfig(ctx context.Context, in *GetCluste
 	return out, nil
 }
 
+func (c *storeServiceClient) AppendWalEntry(ctx context.Context, in *AppendWalEntryRequest, opts ...grpc.CallOption) (*AppendWalEntryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AppendWalEntryResponse)
+	err := c.cc.Invoke(ctx, StoreService_AppendWalEntry_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // StoreServiceServer is the server API for StoreService service.
 // All implementations must embed UnimplementedStoreServiceServer
 // for forward compatibility.
@@ -130,6 +142,7 @@ type StoreServiceServer interface {
 	Gossip(context.Context, *GossipRequest) (*GossipResponse, error)
 	SetClusterConfig(context.Context, *SetClusterConfigRequest) (*SetClusterConfigResponse, error)
 	GetClusterConfig(context.Context, *GetClusterConfigRequest) (*GetClusterConfigResponse, error)
+	AppendWalEntry(context.Context, *AppendWalEntryRequest) (*AppendWalEntryResponse, error)
 	mustEmbedUnimplementedStoreServiceServer()
 }
 
@@ -160,6 +173,9 @@ func (UnimplementedStoreServiceServer) SetClusterConfig(context.Context, *SetClu
 }
 func (UnimplementedStoreServiceServer) GetClusterConfig(context.Context, *GetClusterConfigRequest) (*GetClusterConfigResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetClusterConfig not implemented")
+}
+func (UnimplementedStoreServiceServer) AppendWalEntry(context.Context, *AppendWalEntryRequest) (*AppendWalEntryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AppendWalEntry not implemented")
 }
 func (UnimplementedStoreServiceServer) mustEmbedUnimplementedStoreServiceServer() {}
 func (UnimplementedStoreServiceServer) testEmbeddedByValue()                      {}
@@ -308,6 +324,24 @@ func _StoreService_GetClusterConfig_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StoreService_AppendWalEntry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AppendWalEntryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StoreServiceServer).AppendWalEntry(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StoreService_AppendWalEntry_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StoreServiceServer).AppendWalEntry(ctx, req.(*AppendWalEntryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StoreService_ServiceDesc is the grpc.ServiceDesc for StoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -342,6 +376,10 @@ var StoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetClusterConfig",
 			Handler:    _StoreService_GetClusterConfig_Handler,
+		},
+		{
+			MethodName: "AppendWalEntry",
+			Handler:    _StoreService_AppendWalEntry_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

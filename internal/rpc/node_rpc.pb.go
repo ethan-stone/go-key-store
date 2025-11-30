@@ -821,6 +821,178 @@ func (x *GetClusterConfigResponse) GetOtherNodes() []*NodeConfig {
 	return nil
 }
 
+type AppendWalEntryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WalEntry      *WalEntry              `protobuf:"bytes,1,opt,name=wal_entry,json=walEntry,proto3" json:"wal_entry,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppendWalEntryRequest) Reset() {
+	*x = AppendWalEntryRequest{}
+	mi := &file_internal_rpc_node_rpc_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppendWalEntryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppendWalEntryRequest) ProtoMessage() {}
+
+func (x *AppendWalEntryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_rpc_node_rpc_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppendWalEntryRequest.ProtoReflect.Descriptor instead.
+func (*AppendWalEntryRequest) Descriptor() ([]byte, []int) {
+	return file_internal_rpc_node_rpc_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *AppendWalEntryRequest) GetWalEntry() *WalEntry {
+	if x != nil {
+		return x.WalEntry
+	}
+	return nil
+}
+
+type WalEntry struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SequenceNumber uint64                 `protobuf:"varint,1,opt,name=sequence_number,json=sequenceNumber,proto3" json:"sequence_number,omitempty"`
+	OpType         uint32                 `protobuf:"varint,2,opt,name=op_type,json=opType,proto3" json:"op_type,omitempty"`
+	KeyLength      int32                  `protobuf:"varint,3,opt,name=key_length,json=keyLength,proto3" json:"key_length,omitempty"`
+	ValueLength    int32                  `protobuf:"varint,4,opt,name=value_length,json=valueLength,proto3" json:"value_length,omitempty"`
+	KeyBytes       []byte                 `protobuf:"bytes,5,opt,name=key_bytes,json=keyBytes,proto3" json:"key_bytes,omitempty"`
+	ValueBytes     []byte                 `protobuf:"bytes,6,opt,name=value_bytes,json=valueBytes,proto3" json:"value_bytes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WalEntry) Reset() {
+	*x = WalEntry{}
+	mi := &file_internal_rpc_node_rpc_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WalEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WalEntry) ProtoMessage() {}
+
+func (x *WalEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_rpc_node_rpc_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WalEntry.ProtoReflect.Descriptor instead.
+func (*WalEntry) Descriptor() ([]byte, []int) {
+	return file_internal_rpc_node_rpc_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *WalEntry) GetSequenceNumber() uint64 {
+	if x != nil {
+		return x.SequenceNumber
+	}
+	return 0
+}
+
+func (x *WalEntry) GetOpType() uint32 {
+	if x != nil {
+		return x.OpType
+	}
+	return 0
+}
+
+func (x *WalEntry) GetKeyLength() int32 {
+	if x != nil {
+		return x.KeyLength
+	}
+	return 0
+}
+
+func (x *WalEntry) GetValueLength() int32 {
+	if x != nil {
+		return x.ValueLength
+	}
+	return 0
+}
+
+func (x *WalEntry) GetKeyBytes() []byte {
+	if x != nil {
+		return x.KeyBytes
+	}
+	return nil
+}
+
+func (x *WalEntry) GetValueBytes() []byte {
+	if x != nil {
+		return x.ValueBytes
+	}
+	return nil
+}
+
+type AppendWalEntryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppendWalEntryResponse) Reset() {
+	*x = AppendWalEntryResponse{}
+	mi := &file_internal_rpc_node_rpc_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppendWalEntryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppendWalEntryResponse) ProtoMessage() {}
+
+func (x *AppendWalEntryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_internal_rpc_node_rpc_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppendWalEntryResponse.ProtoReflect.Descriptor instead.
+func (*AppendWalEntryResponse) Descriptor() ([]byte, []int) {
+	return file_internal_rpc_node_rpc_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *AppendWalEntryResponse) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
 var File_internal_rpc_node_rpc_proto protoreflect.FileDescriptor
 
 const file_internal_rpc_node_rpc_proto_rawDesc = "" +
@@ -875,7 +1047,20 @@ const file_internal_rpc_node_rpc_proto_rawDesc = "" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x121\n" +
 	"\tthis_node\x18\x02 \x01(\v2\x14.node_rpc.NodeConfigR\bthisNode\x125\n" +
 	"\vother_nodes\x18\x03 \x03(\v2\x14.node_rpc.NodeConfigR\n" +
-	"otherNodes2\xeb\x03\n" +
+	"otherNodes\"H\n" +
+	"\x15AppendWalEntryRequest\x12/\n" +
+	"\twal_entry\x18\x01 \x01(\v2\x12.node_rpc.WalEntryR\bwalEntry\"\xcc\x01\n" +
+	"\bWalEntry\x12'\n" +
+	"\x0fsequence_number\x18\x01 \x01(\x04R\x0esequenceNumber\x12\x17\n" +
+	"\aop_type\x18\x02 \x01(\rR\x06opType\x12\x1d\n" +
+	"\n" +
+	"key_length\x18\x03 \x01(\x05R\tkeyLength\x12!\n" +
+	"\fvalue_length\x18\x04 \x01(\x05R\vvalueLength\x12\x1b\n" +
+	"\tkey_bytes\x18\x05 \x01(\fR\bkeyBytes\x12\x1f\n" +
+	"\vvalue_bytes\x18\x06 \x01(\fR\n" +
+	"valueBytes\"(\n" +
+	"\x16AppendWalEntryResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok2\xc2\x04\n" +
 	"\fStoreService\x127\n" +
 	"\x04Ping\x12\x15.node_rpc.PingRequest\x1a\x16.node_rpc.PingResponse\"\x00\x124\n" +
 	"\x03Get\x12\x14.node_rpc.GetRequest\x1a\x15.node_rpc.GetResponse\"\x00\x124\n" +
@@ -883,7 +1068,8 @@ const file_internal_rpc_node_rpc_proto_rawDesc = "" +
 	"\x06Delete\x12\x17.node_rpc.DeleteRequest\x1a\x18.node_rpc.DeleteResponse\"\x00\x12=\n" +
 	"\x06Gossip\x12\x17.node_rpc.GossipRequest\x1a\x18.node_rpc.GossipResponse\"\x00\x12[\n" +
 	"\x10SetClusterConfig\x12!.node_rpc.SetClusterConfigRequest\x1a\".node_rpc.SetClusterConfigResponse\"\x00\x12[\n" +
-	"\x10GetClusterConfig\x12!.node_rpc.GetClusterConfigRequest\x1a\".node_rpc.GetClusterConfigResponse\"\x00B)Z'github.com/ethan-stone/go-key-store/rpcb\x06proto3"
+	"\x10GetClusterConfig\x12!.node_rpc.GetClusterConfigRequest\x1a\".node_rpc.GetClusterConfigResponse\"\x00\x12U\n" +
+	"\x0eAppendWalEntry\x12\x1f.node_rpc.AppendWalEntryRequest\x1a .node_rpc.AppendWalEntryResponse\"\x00B)Z'github.com/ethan-stone/go-key-store/rpcb\x06proto3"
 
 var (
 	file_internal_rpc_node_rpc_proto_rawDescOnce sync.Once
@@ -897,7 +1083,7 @@ func file_internal_rpc_node_rpc_proto_rawDescGZIP() []byte {
 	return file_internal_rpc_node_rpc_proto_rawDescData
 }
 
-var file_internal_rpc_node_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_internal_rpc_node_rpc_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_internal_rpc_node_rpc_proto_goTypes = []any{
 	(*PingRequest)(nil),              // 0: node_rpc.PingRequest
 	(*PingResponse)(nil),             // 1: node_rpc.PingResponse
@@ -915,6 +1101,9 @@ var file_internal_rpc_node_rpc_proto_goTypes = []any{
 	(*SetClusterConfigResponse)(nil), // 13: node_rpc.SetClusterConfigResponse
 	(*GetClusterConfigRequest)(nil),  // 14: node_rpc.GetClusterConfigRequest
 	(*GetClusterConfigResponse)(nil), // 15: node_rpc.GetClusterConfigResponse
+	(*AppendWalEntryRequest)(nil),    // 16: node_rpc.AppendWalEntryRequest
+	(*WalEntry)(nil),                 // 17: node_rpc.WalEntry
+	(*AppendWalEntryResponse)(nil),   // 18: node_rpc.AppendWalEntryResponse
 }
 var file_internal_rpc_node_rpc_proto_depIdxs = []int32{
 	9,  // 0: node_rpc.GossipResponse.other_nodes:type_name -> node_rpc.NodeConfig
@@ -922,25 +1111,28 @@ var file_internal_rpc_node_rpc_proto_depIdxs = []int32{
 	9,  // 2: node_rpc.SetClusterConfigRequest.other_nodes:type_name -> node_rpc.NodeConfig
 	9,  // 3: node_rpc.GetClusterConfigResponse.this_node:type_name -> node_rpc.NodeConfig
 	9,  // 4: node_rpc.GetClusterConfigResponse.other_nodes:type_name -> node_rpc.NodeConfig
-	0,  // 5: node_rpc.StoreService.Ping:input_type -> node_rpc.PingRequest
-	2,  // 6: node_rpc.StoreService.Get:input_type -> node_rpc.GetRequest
-	4,  // 7: node_rpc.StoreService.Put:input_type -> node_rpc.PutRequest
-	6,  // 8: node_rpc.StoreService.Delete:input_type -> node_rpc.DeleteRequest
-	8,  // 9: node_rpc.StoreService.Gossip:input_type -> node_rpc.GossipRequest
-	12, // 10: node_rpc.StoreService.SetClusterConfig:input_type -> node_rpc.SetClusterConfigRequest
-	14, // 11: node_rpc.StoreService.GetClusterConfig:input_type -> node_rpc.GetClusterConfigRequest
-	1,  // 12: node_rpc.StoreService.Ping:output_type -> node_rpc.PingResponse
-	3,  // 13: node_rpc.StoreService.Get:output_type -> node_rpc.GetResponse
-	5,  // 14: node_rpc.StoreService.Put:output_type -> node_rpc.PutResponse
-	7,  // 15: node_rpc.StoreService.Delete:output_type -> node_rpc.DeleteResponse
-	10, // 16: node_rpc.StoreService.Gossip:output_type -> node_rpc.GossipResponse
-	13, // 17: node_rpc.StoreService.SetClusterConfig:output_type -> node_rpc.SetClusterConfigResponse
-	15, // 18: node_rpc.StoreService.GetClusterConfig:output_type -> node_rpc.GetClusterConfigResponse
-	12, // [12:19] is the sub-list for method output_type
-	5,  // [5:12] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	17, // 5: node_rpc.AppendWalEntryRequest.wal_entry:type_name -> node_rpc.WalEntry
+	0,  // 6: node_rpc.StoreService.Ping:input_type -> node_rpc.PingRequest
+	2,  // 7: node_rpc.StoreService.Get:input_type -> node_rpc.GetRequest
+	4,  // 8: node_rpc.StoreService.Put:input_type -> node_rpc.PutRequest
+	6,  // 9: node_rpc.StoreService.Delete:input_type -> node_rpc.DeleteRequest
+	8,  // 10: node_rpc.StoreService.Gossip:input_type -> node_rpc.GossipRequest
+	12, // 11: node_rpc.StoreService.SetClusterConfig:input_type -> node_rpc.SetClusterConfigRequest
+	14, // 12: node_rpc.StoreService.GetClusterConfig:input_type -> node_rpc.GetClusterConfigRequest
+	16, // 13: node_rpc.StoreService.AppendWalEntry:input_type -> node_rpc.AppendWalEntryRequest
+	1,  // 14: node_rpc.StoreService.Ping:output_type -> node_rpc.PingResponse
+	3,  // 15: node_rpc.StoreService.Get:output_type -> node_rpc.GetResponse
+	5,  // 16: node_rpc.StoreService.Put:output_type -> node_rpc.PutResponse
+	7,  // 17: node_rpc.StoreService.Delete:output_type -> node_rpc.DeleteResponse
+	10, // 18: node_rpc.StoreService.Gossip:output_type -> node_rpc.GossipResponse
+	13, // 19: node_rpc.StoreService.SetClusterConfig:output_type -> node_rpc.SetClusterConfigResponse
+	15, // 20: node_rpc.StoreService.GetClusterConfig:output_type -> node_rpc.GetClusterConfigResponse
+	18, // 21: node_rpc.StoreService.AppendWalEntry:output_type -> node_rpc.AppendWalEntryResponse
+	14, // [14:22] is the sub-list for method output_type
+	6,  // [6:14] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_internal_rpc_node_rpc_proto_init() }
@@ -954,7 +1146,7 @@ func file_internal_rpc_node_rpc_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_rpc_node_rpc_proto_rawDesc), len(file_internal_rpc_node_rpc_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

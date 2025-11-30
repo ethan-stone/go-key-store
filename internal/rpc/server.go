@@ -2,10 +2,12 @@ package rpc
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/local_store"
+	"github.com/ethan-stone/go-key-store/internal/wal"
 	"google.golang.org/grpc"
 )
 
@@ -178,6 +180,38 @@ func (s *RpcServer) GetClusterConfig(_ context.Context, req *GetClusterConfigReq
 			HashSlotsEnd:   uint32(clusterConfig.ThisNode.HashSlots[1]),
 		},
 		OtherNodes: otherNodes,
+	}, nil
+}
+
+func (s *RpcServer) AppendWalEntry(_ context.Context, req *AppendWalEntryRequest) (*AppendWalEntryResponse, error) {
+	log.Printf("Received AppendWalEntry request for sequence number %d", req.GetWalEntry().GetSequenceNumber())
+
+	keyBytes := make([]byte, len(req.GetWalEntry().GetKeyBytes()))
+	copy(keyBytes, req.GetWalEntry().GetKeyBytes())
+
+	valueBytes := make([]byte, len(req.GetWalEntry().GetValueBytes()))
+	copy(valueBytes, req.GetWalEntry().GetValueBytes())
+
+	walEntry := &wal.WalEntryWrite{
+		OpType:      byte(req.GetWalEntry().GetOpType()),
+		KeyLength:   req.GetWalEntry().GetKeyLength(),
+		ValueLength: req.GetWalEntry().GetValueLength(),
+		KeyBytes:    &keyBytes,
+		ValueBytes:  &valueBytes,
+	}
+
+	sequenceNumber, err := s.storeService.GetWalWriter().Write(walEntry)
+
+	if sequenceNumber != req.GetWalEntry().GetSequenceNumber() {
+		return nil, fmt.Errorf("sequence number mismatch. expected %d, got %d", req.GetWalEntry().GetSequenceNumber(), sequenceNumber)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &AppendWalEntryResponse{
+		Ok: true,
 	}, nil
 }
 
