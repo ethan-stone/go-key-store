@@ -1,4 +1,4 @@
-package store
+package local_store
 
 import (
 	"encoding/binary"

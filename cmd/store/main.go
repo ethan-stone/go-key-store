@@ -20,8 +20,8 @@ import (
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/gossip"
 	"github.com/ethan-stone/go-key-store/internal/http_server"
+	"github.com/ethan-stone/go-key-store/internal/local_store"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
-	"github.com/ethan-stone/go-key-store/internal/store"
 	"github.com/ethan-stone/go-key-store/internal/wal"
 )
 
@@ -96,7 +96,7 @@ func main() {
 
 	noopWalWriter := wal.NewNoopWalWriter()
 
-	localStore := store.InitializeLocalKeyValueStore(&store.InitializeLocalKeyValueStoreConfig{
+	localStore := local_store.InitializeLocalKeyValueStore(&local_store.InitializeLocalKeyValueStoreConfig{
 		WalWriter: noopWalWriter,
 	})
 

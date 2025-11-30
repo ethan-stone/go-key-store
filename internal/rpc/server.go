@@ -5,13 +5,13 @@ import (
 	"log"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
-	"github.com/ethan-stone/go-key-store/internal/service"
+	"github.com/ethan-stone/go-key-store/internal/local_store"
 	"google.golang.org/grpc"
 )
 
 type RpcServer struct {
 	UnimplementedStoreServiceServer
-	storeService     service.StoreService
+	storeService     *local_store.LocalKeyValueStore
 	rpcClientManager RpcClientManager
 	configManager    configuration.ConfigurationManager
 }
@@ -181,7 +181,7 @@ func (s *RpcServer) GetClusterConfig(_ context.Context, req *GetClusterConfigReq
 	}, nil
 }
 
-func NewRpcServer(storeService service.StoreService, configManager configuration.ConfigurationManager, rpcClientManager RpcClientManager) *grpc.Server {
+func NewRpcServer(storeService *local_store.LocalKeyValueStore, configManager configuration.ConfigurationManager, rpcClientManager RpcClientManager) *grpc.Server {
 	grpcServer := grpc.NewServer()
 
 	RegisterStoreServiceServer(grpcServer, &RpcServer{

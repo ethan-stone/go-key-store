@@ -1,4 +1,4 @@
-package store
+package remote_store
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ import (
 )
 
 type RemoteKeyValueStore struct {
-	rpcClient rpc.RpcClient
+	RpcClient rpc.RpcClient
 }
 
 func (store *RemoteKeyValueStore) Get(key string) (*service.GetResult, error) {
-	r, err := store.rpcClient.Get(key)
+	r, err := store.RpcClient.Get(key)
 
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (store *RemoteKeyValueStore) Get(key string) (*service.GetResult, error) {
 }
 
 func (store *RemoteKeyValueStore) Put(key string, val string) error {
-	r, err := store.rpcClient.Put(key, val)
+	r, err := store.RpcClient.Put(key, val)
 
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func (store *RemoteKeyValueStore) Put(key string, val string) error {
 }
 
 func (store *RemoteKeyValueStore) Delete(key string) error {
-	r, err := store.rpcClient.Delete(key)
+	r, err := store.RpcClient.Delete(key)
 
 	if err != nil {
 		return err
@@ -80,7 +80,7 @@ func InitializeRemoteStores(clusterConfig *configuration.ClusterConfig, rpcClien
 		}
 
 		remoteKeyValueStore := &RemoteKeyValueStore{
-			rpcClient: client,
+			RpcClient: client,
 		}
 
 		remoteKeyValueStores[address] = remoteKeyValueStore

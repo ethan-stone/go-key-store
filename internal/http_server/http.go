@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
+	"github.com/ethan-stone/go-key-store/internal/factory"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
-	"github.com/ethan-stone/go-key-store/internal/store"
 )
 
 type KeyValueResponse struct {
@@ -25,7 +25,7 @@ func getHandler(configManager configuration.ConfigurationManager, rpcClientManag
 
 		clusterConfig := configManager.GetClusterConfig()
 
-		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
+		store, err := factory.GetStore(key, clusterConfig, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -56,7 +56,7 @@ func putHandler(configManager configuration.ConfigurationManager, rpcClientManag
 
 		clusterConfig := configManager.GetClusterConfig()
 
-		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
+		store, err := factory.GetStore(key, clusterConfig, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -85,7 +85,7 @@ func deleteHandler(configManager configuration.ConfigurationManager, rpcClientMa
 
 		clusterConfig := configManager.GetClusterConfig()
 
-		store, err := store.GetStore(key, clusterConfig, rpcClientManager)
+		store, err := factory.GetStore(key, clusterConfig, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

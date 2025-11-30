@@ -1,4 +1,4 @@
-package store
+package factory
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
 	"github.com/ethan-stone/go-key-store/internal/hash"
+	"github.com/ethan-stone/go-key-store/internal/local_store"
+	"github.com/ethan-stone/go-key-store/internal/remote_store"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
 	"github.com/ethan-stone/go-key-store/internal/service"
 )
@@ -18,10 +20,10 @@ func GetStore(key string, clusterConfig *configuration.ClusterConfig, rpcClientM
 	// If the hash falls into this node, then get the local store.
 	if hashSlot >= uint32(clusterConfig.ThisNode.HashSlots[0]) && hashSlot <= uint32(clusterConfig.ThisNode.HashSlots[1]) {
 		log.Printf("Using local store")
-		return Store, nil
+		return local_store.Store, nil
 	}
 
-	var remoteKeyValueStore *RemoteKeyValueStore
+	var remoteKeyValueStore *remote_store.RemoteKeyValueStore
 
 	// Find the node that key val belongs to.
 	for i := range clusterConfig.OtherNodes {
@@ -35,8 +37,8 @@ func GetStore(key string, clusterConfig *configuration.ClusterConfig, rpcClientM
 				return nil, err
 			}
 
-			remoteKeyValueStore = &RemoteKeyValueStore{
-				rpcClient: client,
+			remoteKeyValueStore = &remote_store.RemoteKeyValueStore{
+				RpcClient: client,
 			}
 		}
 	}

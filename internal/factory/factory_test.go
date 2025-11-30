@@ -1,10 +1,12 @@
-package store
+package factory
 
 import (
 	"os"
 	"testing"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
+	"github.com/ethan-stone/go-key-store/internal/local_store"
+	"github.com/ethan-stone/go-key-store/internal/remote_store"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
 	"github.com/ethan-stone/go-key-store/internal/wal"
 )
@@ -112,8 +114,8 @@ func TestReturnsLocalStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore(
-		&InitializeLocalKeyValueStoreConfig{
+	local_store.InitializeLocalKeyValueStore(
+		&local_store.InitializeLocalKeyValueStoreConfig{
 			WalWriter: wal.NewFileWalWriter(
 				&wal.WalWriterConfig{
 					Directory: "wals",
@@ -123,16 +125,16 @@ func TestReturnsLocalStore(t *testing.T) {
 		},
 	)
 
-	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
+	newStore, err := GetStore(key, clusterConfig, mockRpcClientManager)
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when getting store %v", err)
 	}
 
-	_, ok := store.(*LocalKeyValueStore)
+	_, ok := newStore.(*local_store.LocalKeyValueStore)
 
 	if !ok {
-		t.Errorf("Expected *LocalKeyValueStore, got %T", store)
+		t.Errorf("Expected *LocalKeyValueStore, got %T", newStore)
 	}
 
 	t.Cleanup(func() {
@@ -159,8 +161,8 @@ func TestReturnsRemoteStore(t *testing.T) {
 		},
 	}
 
-	InitializeLocalKeyValueStore(
-		&InitializeLocalKeyValueStoreConfig{
+	local_store.InitializeLocalKeyValueStore(
+		&local_store.InitializeLocalKeyValueStoreConfig{
 			WalWriter: wal.NewFileWalWriter(
 				&wal.WalWriterConfig{
 					Directory: "wals",
@@ -170,16 +172,16 @@ func TestReturnsRemoteStore(t *testing.T) {
 		},
 	)
 
-	store, err := GetStore(key, clusterConfig, mockRpcClientManager)
+	newStore, err := GetStore(key, clusterConfig, mockRpcClientManager)
 
 	if err != nil {
 		t.Fatalf("Did not expect an error when getting store %v", err)
 	}
 
-	_, ok := store.(*RemoteKeyValueStore)
+	_, ok := newStore.(*remote_store.RemoteKeyValueStore)
 
 	if !ok {
-		t.Errorf("Expected *RemoteKeyValueStore, got %T", store)
+		t.Errorf("Expected *RemoteKeyValueStore, got %T", newStore)
 	}
 
 	t.Cleanup(func() {
