@@ -63,27 +63,32 @@ func (store *RemoteKeyValueStore) Delete(key string) error {
 
 var remoteKeyValueStores map[string]*RemoteKeyValueStore = make(map[string]*RemoteKeyValueStore)
 
-func InitializeRemoteStores(clusterConfig *configuration.ClusterConfig, rpcClientManager rpc.RpcClientManager) {
-	for i := range clusterConfig.OtherNodes {
-		address := clusterConfig.OtherNodes[i].Address
+func InitializeRemoteStores(configManager configuration.ConfigurationManager, rpcClientManager rpc.RpcClientManager) {
 
-		if address == clusterConfig.ThisNode.Address {
-			continue
-		}
+	currentNode, _, clusterConfig, err := configManager.GetCurrentNodeConfig()
 
-		client, err := rpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
-			Address: address,
-		})
-
-		if err != nil {
-			log.Fatalf("Failed to make grpc client %v", err)
-		}
-
-		remoteKeyValueStore := &RemoteKeyValueStore{
-			RpcClient: client,
-		}
-
-		remoteKeyValueStores[address] = remoteKeyValueStore
-
+	if err != nil {
+		log.Fatalf("Failed to get current node config %v", err)
 	}
+
+	for i := range clusterConfig.ShardGroups {
+		shardGroup := clusterConfig.ShardGroups[i]
+		for j := range shardGroup.Nodes {
+			node := shardGroup.Nodes[j]
+			if node.Role == "primary" && node.ID != currentNode.ID {
+				client, err := rpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+					Address: node.GrpcAddress,
+				})
+				if err != nil {
+					log.Fatalf("Failed to make grpc client %v", err)
+				}
+
+				remoteKeyValueStore := &RemoteKeyValueStore{
+					RpcClient: client,
+				}
+				remoteKeyValueStores[node.GrpcAddress] = remoteKeyValueStore
+			}
+		}
+	}
+
 }

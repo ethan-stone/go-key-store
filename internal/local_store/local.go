@@ -18,6 +18,7 @@ import (
 type LocalKeyValueStore struct {
 	data                      map[string]string
 	dataMu                    sync.RWMutex
+	dataDir                   string
 	walWriter                 wal.WalWriter
 	walWriterMu               sync.Mutex
 	lastAppliedSequenceNumber uint64
@@ -113,7 +114,7 @@ func (store *LocalKeyValueStore) ApplyWalEntry(entry *wal.WalEntry) error {
 	case wal.Del:
 		store.delete(string(*entry.KeyBytes))
 	case wal.Snapshot:
-		store.takeSnapshot(entry.SequenceNumber, "snapshot.bin")
+		store.takeSnapshot(entry.SequenceNumber, filepath.Join(store.dataDir, "snapshot.bin"))
 	default:
 		return fmt.Errorf("invalid OpType: %d", entry.OpType)
 	}
@@ -335,6 +336,7 @@ var Store *LocalKeyValueStore
 
 type InitializeLocalKeyValueStoreConfig struct {
 	WalWriter wal.WalWriter
+	DataDir   string
 }
 
 func InitializeLocalKeyValueStore(config *InitializeLocalKeyValueStoreConfig) *LocalKeyValueStore {
@@ -342,6 +344,7 @@ func InitializeLocalKeyValueStore(config *InitializeLocalKeyValueStoreConfig) *L
 	Store = &LocalKeyValueStore{
 		data:                      make(map[string]string),
 		dataMu:                    sync.RWMutex{},
+		dataDir:                   config.DataDir,
 		walWriter:                 config.WalWriter,
 		walWriterMu:               sync.Mutex{},
 		lastAppliedSequenceNumber: 0,

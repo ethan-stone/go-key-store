@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/ethan-stone/go-key-store/internal/configuration"
-	"github.com/ethan-stone/go-key-store/internal/gossip"
 	"github.com/ethan-stone/go-key-store/internal/http_server"
 	"github.com/ethan-stone/go-key-store/internal/local_store"
 	"github.com/ethan-stone/go-key-store/internal/rpc"
@@ -36,17 +35,13 @@ import (
 func main() {
 	log.Default().SetFlags(log.Ldate | log.Ltime | log.Lmsgprefix)
 
-	nodeID := configuration.GenerateNodeID()
-
-	log.SetPrefix(nodeID + " ")
-
 	var (
-		httpPort string
-		grpcPort string
+		nodeID     string
+		configFile string
 	)
 
-	flag.StringVar(&httpPort, "http-port", "8080", "")
-	flag.StringVar(&grpcPort, "grpc-port", "8081", "")
+	flag.StringVar(&nodeID, "node-id", "", "The ID of the node")
+	flag.StringVar(&configFile, "config-file", "cluster.json", "The file to load the cluster config from")
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", os.Args[0])
@@ -56,57 +51,58 @@ func main() {
 
 	flag.Parse()
 
-	thisNodeConfig := &configuration.NodeConfig{
-		ID:        nodeID,
-		Address:   "localhost:" + grpcPort,
-		HashSlots: []int{0, 16838},
+	log.SetPrefix(nodeID + " ")
+
+	configurationManager := configuration.NewBaseConfigurationManager()
+	err := configurationManager.SetCurrentNodeID(nodeID)
+
+	if err != nil {
+		log.Fatalf("failed to set current node id %v", err)
 	}
 
-	var clusterConfig *configuration.ClusterConfig
+	err = configurationManager.LoadClusterConfig(configFile)
+
+	if err != nil {
+		log.Fatalf("failed to load cluster config %v", err)
+	}
+
+	currentNodeConfig, currentShardGroup, clusterConfig, err := configurationManager.GetCurrentNodeConfig()
+
+	if err != nil {
+		log.Fatalf("failed to get current node config: %v", err)
+	}
 
 	grpcClientManager := rpc.NewGrpcClientManager(rpc.NewRpcClient)
 
-	otherNodes := []*configuration.NodeConfig{}
-
-	clusterConfig = &configuration.ClusterConfig{
-		ThisNode:   thisNodeConfig,
-		OtherNodes: otherNodes,
-	}
-
-	configurationManager := configuration.NewBaseConfigurationManager(clusterConfig)
-
 	// initialize rpc clients
-	for i := range clusterConfig.OtherNodes {
-		// skip over current node
-		if clusterConfig.OtherNodes[i].Address == clusterConfig.ThisNode.Address {
-			continue
+	for i := range clusterConfig.ShardGroups {
+		shardGroup := clusterConfig.ShardGroups[i]
+		for j := range shardGroup.Nodes {
+			node := shardGroup.Nodes[j]
+			if node.ID != currentNodeConfig.ID {
+				grpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+					Address: node.GrpcAddress,
+				})
+			}
 		}
-
-		grpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
-			Address: clusterConfig.OtherNodes[i].Address,
-		})
 	}
-
-	gossiper := gossip.NewGossipClient(&gossip.GossipClientConfig{
-		RpcClientManager: grpcClientManager,
-		ConfigManager:    configurationManager,
-	})
-
-	gossiper.Gossip()
 
 	noopWalWriter := wal.NewNoopWalWriter()
 
+	datadir := currentNodeConfig.DataDir
+
 	localStore := local_store.InitializeLocalKeyValueStore(&local_store.InitializeLocalKeyValueStoreConfig{
 		WalWriter: noopWalWriter,
+		DataDir:   datadir,
 	})
 
-	err := localStore.LoadFromSnapshot("snapshot.bin")
+	err = localStore.LoadFromSnapshot(filepath.Join(datadir, "snapshot.bin"))
 
 	if err != nil {
 		log.Fatalf("failed to load from snapshot %v", err)
 	}
 
-	walFiles, _ := filepath.Glob("wals/wal_*.bin")
+	walFiles, _ := filepath.Glob(filepath.Join(datadir, "wals", "wal_*.bin"))
 	sort.Strings(walFiles)
 
 	for _, walPath := range walFiles {
@@ -154,21 +150,75 @@ func main() {
 
 	// For simplicity, we start a new WAL file.
 	// For max efficiency, we could try to reuse the most recent WAL file if valid/healthy, but not right now.
-	localStore.SetWalWriter(wal.NewFileWalWriter(
+
+	walWriter := wal.NewFileWalWriter(
 		&wal.WalWriterConfig{
-			Directory:      "wals",
+			Directory:      filepath.Join(datadir, "wals"),
 			SyncMode:       wal.SyncModeAlways,
 			Index:          nextIndex,
 			SequenceNumber: localStore.GetLastAppliedSequenceNumber(),
 		},
-	))
+	)
+
+	localStore.SetWalWriter(walWriter)
 
 	localStore.SubscribeToWalEntries()
-	localStore.StartSnapshotManager(time.Second*1, 64) // 64MB
+
+	if currentNodeConfig.Role == "primary" {
+		localStore.StartSnapshotManager(time.Second*1, 64) // 64MB
+	}
+
+	if currentNodeConfig.Role == "primary" {
+		for i := range currentShardGroup.Nodes {
+			go func() {
+				for entry := range walWriter.Subscribe() {
+					if currentShardGroup.Nodes[i].ID == currentNodeConfig.ID {
+						continue
+					}
+
+					rpcClient, err := grpcClientManager.GetOrCreateRpcClient(&rpc.RpcClientConfig{
+						Address: currentShardGroup.Nodes[i].GrpcAddress,
+					})
+
+					if err != nil {
+						log.Fatalf("failed to create rpc client %v", err)
+					}
+
+					var keyBytes []byte
+					var valueBytes []byte
+
+					if entry.KeyBytes == nil {
+						keyBytes = make([]byte, 0)
+					} else {
+						keyBytes = make([]byte, len(*entry.KeyBytes))
+						copy(keyBytes, *entry.KeyBytes)
+					}
+
+					if entry.ValueBytes == nil {
+						valueBytes = make([]byte, 0)
+					} else {
+						valueBytes = make([]byte, len(*entry.ValueBytes))
+						copy(valueBytes, *entry.ValueBytes)
+					}
+
+					rpcClient.AppendWalEntry(&rpc.AppendWalEntryRequest{
+						WalEntry: &rpc.WalEntry{
+							SequenceNumber: entry.SequenceNumber,
+							OpType:         uint32(entry.OpType),
+							KeyLength:      int32(entry.KeyLength),
+							ValueLength:    int32(entry.ValueLength),
+							KeyBytes:       keyBytes,
+							ValueBytes:     valueBytes,
+						},
+					})
+				}
+			}()
+		}
+	}
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{
-			Address:          ":" + httpPort,
+			Address:          ":" + strings.Split(currentNodeConfig.HttpAddress, ":")[1],
 			ConfigManager:    configurationManager,
 			RpcClientManager: grpcClientManager,
 		},
@@ -178,20 +228,20 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("HTTP server running on port %s", httpPort)
+		log.Printf("HTTP server running on port %s", currentNodeConfig.HttpAddress)
 
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start http server %v", err)
 		}
 	}()
 
-	list, err := net.Listen("tcp", ":"+grpcPort)
+	list, err := net.Listen("tcp", ":"+strings.Split(currentNodeConfig.GrpcAddress, ":")[1])
 
 	if err != nil {
 		log.Fatalf("failed to start grpc server %v", err)
 	}
 
-	log.Printf("GRPC server runnnig on port %s", grpcPort)
+	log.Printf("GRPC server runnnig on port %s", currentNodeConfig.GrpcAddress)
 
 	grpcServer := rpc.NewRpcServer(localStore, configurationManager, grpcClientManager)
 

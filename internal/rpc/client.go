@@ -15,6 +15,7 @@ type RpcClient interface {
 	Put(key string, val string) (*PutResponse, error)
 	Delete(key string) (*DeleteResponse, error)
 	Gossip(req *GossipRequest) (*GossipResponse, error)
+	AppendWalEntry(req *AppendWalEntryRequest) (*AppendWalEntryResponse, error)
 	GetAddress() string
 	SetClusterConfig(req *SetClusterConfigRequest) (*SetClusterConfigResponse, error)
 	GetClusterConfig(req *GetClusterConfigRequest) (*GetClusterConfigResponse, error)

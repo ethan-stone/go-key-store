@@ -1,0 +1,31 @@
+{
+  "shard_groups": [
+    {
+      "id": 0,
+      "hash_slots": [0, 16383],
+      "nodes": [
+        {
+          "id": "node1",
+          "role": "primary",
+          "http_address": "localhost:8080",
+          "grpc_address": "localhost:8081",
+          "data_dir": "data/node1"
+        },
+        {
+          "id": "node2",
+          "role": "replica",
+          "http_address": "localhost:8082",
+          "grpc_address": "localhost:8083",
+          "data_dir": "data/node2"
+        },
+        {
+          "id": "node3",
+          "role": "replica",
+          "http_address": "localhost:8084",
+          "grpc_address": "localhost:8085",
+          "data_dir": "data/node3"
+        }
+      ]
+    }
+  ]
+}

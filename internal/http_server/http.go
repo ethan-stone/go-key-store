@@ -23,9 +23,7 @@ func getHandler(configManager configuration.ConfigurationManager, rpcClientManag
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		clusterConfig := configManager.GetClusterConfig()
-
-		store, err := factory.GetStore(key, clusterConfig, rpcClientManager)
+		store, err := factory.GetStore(key, configManager, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -54,9 +52,7 @@ func putHandler(configManager configuration.ConfigurationManager, rpcClientManag
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		clusterConfig := configManager.GetClusterConfig()
-
-		store, err := factory.GetStore(key, clusterConfig, rpcClientManager)
+		store, err := factory.GetStore(key, configManager, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -83,9 +79,7 @@ func deleteHandler(configManager configuration.ConfigurationManager, rpcClientMa
 	return func(w http.ResponseWriter, r *http.Request) {
 		key := r.PathValue("key")
 
-		clusterConfig := configManager.GetClusterConfig()
-
-		store, err := factory.GetStore(key, clusterConfig, rpcClientManager)
+		store, err := factory.GetStore(key, configManager, rpcClientManager)
 
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
