@@ -148,14 +148,11 @@ func main() {
 
 	fmt.Println("Store loaded with last applied sequence number ->", localStore.GetLastAppliedSequenceNumber())
 
-	// For simplicity, we start a new WAL file.
-	// For max efficiency, we could try to reuse the most recent WAL file if valid/healthy, but not right now.
-
 	walWriter := wal.NewFileWalWriter(
 		&wal.WalWriterConfig{
 			Directory:      filepath.Join(datadir, "wals"),
 			SyncMode:       wal.SyncModeAlways,
-			Index:          nextIndex,
+			Index:          nextIndex - 1,
 			SequenceNumber: localStore.GetLastAppliedSequenceNumber(),
 		},
 	)

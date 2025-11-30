@@ -14,12 +14,13 @@ This repo is an attempt to learn many of the concepts related to distributed sys
 - [x] Implement WAL and rebuild on start up. For now do a super durable WAL where we first commit the log and then update in memory DB.
 - [x] Rotate WAL files when they hit certain size.
 - [x] Add an index to wal entries for easier navigation.
-- [ ] All snapshot events and wal rotations to WAL.
+- [x] All snapshot events and wal rotations to WAL.
 - [ ] Replication
-  - [ ] RPC call for AppendWalEntries
-  - [ ] Configuration for nodes of whether it is a leader or following (no automatic failover)
-  - [ ] Add to WalWriter a map of ReplicaStreams (implemented via Go channels). After writing to Wal, send entry to channel which is handled by another task that sends the entry to the replica. This map will empty in replicas.
-  - [ ] Include snapshot and WAL rotation behavior in stream.
+  - [x] RPC call for AppendWalEntries
+  - [x] Configuration for nodes of whether it is a leader or following (no automatic failover)
+  - [x] Add to WalWriter a map of ReplicaStreams (implemented via Go channels). After writing to Wal, send entry to channel which is handled by another task that sends the entry to the replica. This map will empty in replicas.
+  - [x] Include snapshot and WAL rotation behavior in stream.
+  - [x] Have different behavior for primary vs. replica. Replicas should not automatically snapshot and rotate.
   - [ ] Implement a RequestFullSync rpc method that replicas can call the primary with. This will start a go routine that will send the latest snapshot (likely chunked), and then replay the WAL. Will need some sort of coorelation ID for certain stages of this job.
     - [ ] SaveSnapshotChunk method that sends a chunk of a snapshot and replica saves it. One parameter is the FullSyncJobID.
     - [ ] How to transfer from reading from the Wal backlog to real-time replication? Maybe reuse the same ReplicaStream channel, queue all the existing wal entries, and block sending new wal entries to the channel until at least all Wal entries are queued? Just have a simple lock on the stream?
