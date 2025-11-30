@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -203,7 +204,8 @@ func (store *LocalKeyValueStore) takeSnapshot(lastSequenceNumber uint64, path st
 
 	CleanupOldWals(store.walWriter.GetDirectory())
 
-	fmt.Println("Snapshot written ->", path)
+	log.Printf("Snapshot written to %s. Last applied sequence number -> %d", path, lastSequenceNumber)
+
 	return nil
 }
 
@@ -221,18 +223,18 @@ func CleanupOldWals(dir string) {
 	}
 }
 
-func (store *LocalKeyValueStore) CheckpointAndRotate() error {
-	fmt.Println("Starting checkpoint...")
+func (store *LocalKeyValueStore) Snapshot() error {
+	log.Println("Starting snapshot...")
 
 	if err := store.TakeSnapshot(); err != nil {
 		return fmt.Errorf("snapshot failed: %w", err)
 	}
 
-	fmt.Println("Checkpoint complete -> new WAL started")
+	log.Println("Snapshot complete and WAL rotated.")
 	return nil
 }
 
-func (store *LocalKeyValueStore) StartCheckpointManager(interval time.Duration, maxWalSize int64) {
+func (store *LocalKeyValueStore) StartSnapshotManager(interval time.Duration, maxWalSize int64) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
@@ -249,9 +251,9 @@ func (store *LocalKeyValueStore) StartCheckpointManager(interval time.Duration, 
 			}
 
 			if info.Size() > maxWalSize {
-				fmt.Printf("WAL size (%d MB) exceeds limit; checkpointing...\n",
+				log.Printf("WAL size (%d MB) exceeds limit; snapshotting and rotating...",
 					info.Size()/1024/1024)
-				if err := store.CheckpointAndRotate(); err != nil {
+				if err := store.Snapshot(); err != nil {
 					fmt.Println("checkpoint error:", err)
 				}
 			}

@@ -164,7 +164,7 @@ func main() {
 	))
 
 	localStore.SubscribeToWalEntries()
-	localStore.StartCheckpointManager(time.Second*1, 64) // 64MB
+	localStore.StartSnapshotManager(time.Second*1, 64) // 64MB
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{

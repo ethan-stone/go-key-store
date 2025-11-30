@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -169,7 +170,7 @@ func (writer *FileWalWriter) Write(entry *WalEntryWrite) (uint64, error) {
 		}
 	}
 
-	fmt.Printf("Wrote wal entry with sequence number: %d and op type: %d\n", sequenceNumber, entry.OpType)
+	log.Printf("Wrote wal entry with sequence number: %d and op type: %d to file %s", sequenceNumber, entry.OpType, writer.file.Name())
 
 	return sequenceNumber, nil
 }
@@ -243,20 +244,6 @@ func (writer *FileWalWriter) serializeSnapshotEntry() ([]byte, error) {
 
 	binary.Write(buf, binary.LittleEndian, writer.sequenceNumber)
 	binary.Write(buf, binary.LittleEndian, byte(3))  // SNAPSHOT OpType
-	binary.Write(buf, binary.LittleEndian, int32(0)) // KeyLength
-	binary.Write(buf, binary.LittleEndian, int32(0)) // ValueLength
-
-	checksum := crc32.ChecksumIEEE(buf.Bytes())
-
-	binary.Write(buf, binary.LittleEndian, checksum)
-
-	return buf.Bytes(), nil
-}
-
-func (writer *FileWalWriter) serializeWalRotationEntry() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, writer.sequenceNumber)
-	binary.Write(buf, binary.LittleEndian, byte(4))  // WAL_ROTATION OpType
 	binary.Write(buf, binary.LittleEndian, int32(0)) // KeyLength
 	binary.Write(buf, binary.LittleEndian, int32(0)) // ValueLength
 
