@@ -76,13 +76,6 @@ func TestRead(t *testing.T) {
 			KeyBytes:    nil,
 			ValueBytes:  nil,
 		},
-		{
-			OpType:      WalRotation,
-			KeyLength:   0,
-			ValueLength: 0,
-			KeyBytes:    nil,
-			ValueBytes:  nil,
-		},
 	}
 
 	expectedWalEntries := []*WalEntryRead{
@@ -96,10 +89,6 @@ func TestRead(t *testing.T) {
 		},
 		{
 			Entry: &WalEntry{OpType: Snapshot, KeyLength: 0, ValueLength: 0, KeyBytes: nil, ValueBytes: nil},
-			Size:  8 + 1 + 4 + 4 + 4,
-		},
-		{
-			Entry: &WalEntry{OpType: WalRotation, KeyLength: 0, ValueLength: 0, KeyBytes: nil, ValueBytes: nil},
 			Size:  8 + 1 + 4 + 4 + 4,
 		},
 	}

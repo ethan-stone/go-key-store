@@ -157,6 +157,8 @@ func (store *LocalKeyValueStore) TakeSnapshot() error {
 
 	store.WaitForApply(sequenceNumber)
 
+	fmt.Println("Snapshot complete. Latest sequence number ->", sequenceNumber)
+
 	return nil
 }
 
@@ -195,6 +197,12 @@ func (store *LocalKeyValueStore) takeSnapshot(lastSequenceNumber uint64, path st
 		return fmt.Errorf("moving snapshot into place: %w", err)
 	}
 
+	if err := store.walWriter.Rotate(); err != nil {
+		return fmt.Errorf("rotate failed: %w", err)
+	}
+
+	CleanupOldWals(store.walWriter.GetDirectory())
+
 	fmt.Println("Snapshot written ->", path)
 	return nil
 }
@@ -216,18 +224,9 @@ func CleanupOldWals(dir string) {
 func (store *LocalKeyValueStore) CheckpointAndRotate() error {
 	fmt.Println("Starting checkpoint...")
 
-	// 1. Write the snapshot
 	if err := store.TakeSnapshot(); err != nil {
 		return fmt.Errorf("snapshot failed: %w", err)
 	}
-
-	// 2. Rotate WAL to a new file
-	if err := store.walWriter.Rotate(); err != nil {
-		return fmt.Errorf("rotate failed: %w", err)
-	}
-
-	// 3. Clean up older WALs
-	CleanupOldWals(store.walWriter.GetDirectory())
 
 	fmt.Println("Checkpoint complete -> new WAL started")
 	return nil
@@ -306,7 +305,12 @@ func (store *LocalKeyValueStore) LoadFromSnapshot(path string) error {
 
 		store.put(string(key), string(val))
 	}
+	store.lastAppliedSequenceNumber = sequenceNumber
 	return nil
+}
+
+func (store *LocalKeyValueStore) GetLastAppliedSequenceNumber() uint64 {
+	return store.lastAppliedSequenceNumber
 }
 
 func (store *LocalKeyValueStore) Close() error {

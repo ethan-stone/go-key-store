@@ -259,6 +259,10 @@ func TestShouldLoadFromSnapshot(t *testing.T) {
 		t.Fatalf("Did not expect an error when loading from snapshot %v", err)
 	}
 
+	if newStore.lastAppliedSequenceNumber != store.lastAppliedSequenceNumber {
+		t.Errorf("Did not expect to have different last applied sequence numbers %d != %d", newStore.lastAppliedSequenceNumber, store.lastAppliedSequenceNumber)
+	}
+
 	for i := range 100 {
 		key := keys[i]
 
@@ -281,6 +285,7 @@ func TestShouldLoadFromSnapshot(t *testing.T) {
 		if newStoreResult.Val != originalStoreResult.Val {
 			t.Errorf("Did not expect to find key %s with value %s", key, originalStoreResult.Val)
 		}
+
 	}
 
 	t.Cleanup(func() {

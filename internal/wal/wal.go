@@ -35,10 +35,9 @@ type FileWalWriter struct {
 }
 
 const (
-	Put         = 1
-	Del         = 2
-	Snapshot    = 3
-	WalRotation = 4
+	Put      = 1
+	Del      = 2
+	Snapshot = 3
 )
 
 // Example
@@ -143,15 +142,6 @@ func (writer *FileWalWriter) Write(entry *WalEntryWrite) (uint64, error) {
 		if err != nil {
 			return 0, err
 		}
-	case WalRotation:
-		buf, err := writer.serializeWalRotationEntry()
-		if err != nil {
-			return 0, err
-		}
-		_, err = writer.file.Write(buf)
-		if err != nil {
-			return 0, err
-		}
 	}
 
 	if writer.syncMode == SyncModeAlways {
@@ -178,6 +168,8 @@ func (writer *FileWalWriter) Write(entry *WalEntryWrite) (uint64, error) {
 		default:
 		}
 	}
+
+	fmt.Printf("Wrote wal entry with sequence number: %d and op type: %d\n", sequenceNumber, entry.OpType)
 
 	return sequenceNumber, nil
 }
@@ -289,20 +281,6 @@ func (writer *FileWalWriter) Close() error {
 }
 
 func (writer *FileWalWriter) Rotate() error {
-
-	// Close the current WAL
-	_, err := writer.Write(&WalEntryWrite{
-		OpType:      WalRotation,
-		KeyLength:   0,
-		ValueLength: 0,
-		KeyBytes:    nil,
-		ValueBytes:  nil,
-	})
-
-	if err != nil {
-		return err
-	}
-
 	writer.file.Sync()
 	writer.file.Close()
 
@@ -427,8 +405,6 @@ func (reader *FileWalReader) Read(offset int64) (*WalEntryRead, error) {
 		return reader.deserializeDelEntry(sequenceNumber, cursor, offset)
 	case Snapshot:
 		return reader.deserializeSnapshotEntry(sequenceNumber, cursor, offset)
-	case WalRotation:
-		return reader.deserializeWalRotationEntry(sequenceNumber, cursor, offset)
 	default:
 		return nil, fmt.Errorf("invalid OpType: %d", opType)
 	}
@@ -603,43 +579,6 @@ func (reader *FileWalReader) deserializeSnapshotEntry(seq uint64, cursor int64, 
 		Entry: &WalEntry{
 			SequenceNumber: seq,
 			OpType:         Snapshot,
-			KeyLength:      0,
-			ValueLength:    0,
-			CheckSum:       storedChecksum,
-		},
-		Size: int64(entrySize + 4),
-	}, nil
-}
-
-func (reader *FileWalReader) deserializeWalRotationEntry(seq uint64, cursor int64, baseOffset int64) (*WalEntryRead, error) {
-	checksumBuf := make([]byte, 4)
-
-	// Skip the two int32s that are both zero
-	cursor += 8
-
-	_, err := reader.file.ReadAt(checksumBuf, cursor)
-	if err != nil {
-		return nil, err
-	}
-
-	storedChecksum := binary.LittleEndian.Uint32(checksumBuf)
-
-	entrySize := 8 + 1 + 4 + 4 // seq + optype + 2 lengths
-	entryBuf := make([]byte, entrySize)
-	_, err = reader.file.ReadAt(entryBuf, baseOffset)
-	if err != nil {
-		return nil, err
-	}
-
-	computedChecksum := crc32.ChecksumIEEE(entryBuf)
-	if storedChecksum != computedChecksum {
-		return nil, fmt.Errorf("checksum mismatch")
-	}
-
-	return &WalEntryRead{
-		Entry: &WalEntry{
-			SequenceNumber: seq,
-			OpType:         WalRotation,
 			KeyLength:      0,
 			ValueLength:    0,
 			CheckSum:       storedChecksum,

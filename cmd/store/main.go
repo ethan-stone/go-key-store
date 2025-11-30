@@ -109,8 +109,6 @@ func main() {
 	walFiles, _ := filepath.Glob("wals/wal_*.bin")
 	sort.Strings(walFiles)
 
-	sequenceNumber := uint64(0)
-
 	for _, walPath := range walFiles {
 		fmt.Println("replaying", walPath)
 		walReader := wal.NewFileWalReader(walPath)
@@ -128,11 +126,12 @@ func main() {
 			}
 
 			localStore.ApplyWalEntry(entry.Entry)
+			fmt.Println("Applied wal entry ->", entry.Entry.SequenceNumber)
 
 			offset += entry.Size
 
-			sequenceNumber = entry.Entry.SequenceNumber
 		}
+
 		walReader.Close()
 
 	}
@@ -151,6 +150,8 @@ func main() {
 
 	nextIndex++
 
+	fmt.Println("Store loaded with last applied sequence number ->", localStore.GetLastAppliedSequenceNumber())
+
 	// For simplicity, we start a new WAL file.
 	// For max efficiency, we could try to reuse the most recent WAL file if valid/healthy, but not right now.
 	localStore.SetWalWriter(wal.NewFileWalWriter(
@@ -158,12 +159,12 @@ func main() {
 			Directory:      "wals",
 			SyncMode:       wal.SyncModeAlways,
 			Index:          nextIndex,
-			SequenceNumber: sequenceNumber,
+			SequenceNumber: localStore.GetLastAppliedSequenceNumber(),
 		},
 	))
 
 	localStore.SubscribeToWalEntries()
-	localStore.StartCheckpointManager(time.Second*1, 64*1024*1024) // 64MB
+	localStore.StartCheckpointManager(time.Second*1, 64) // 64MB
 
 	httpServer := http_server.NewHttpServer(
 		&http_server.HttpServerConfig{
