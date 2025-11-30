@@ -15,16 +15,17 @@ import (
 )
 
 type LocalKeyValueStore struct {
-	mu                        sync.RWMutex
 	data                      map[string]string
+	dataMu                    sync.RWMutex
 	walWriter                 wal.WalWriter
+	walWriterMu               sync.Mutex
 	lastAppliedSequenceNumber uint64
 	cond                      *sync.Cond
 }
 
 func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
-	store.mu.RLock()
-	defer store.mu.RUnlock()
+	store.dataMu.RLock()
+	defer store.dataMu.RUnlock()
 	val, ok := store.data[key]
 
 	if !ok {
@@ -41,6 +42,9 @@ func (store *LocalKeyValueStore) Get(key string) (*service.GetResult, error) {
 }
 
 func (store *LocalKeyValueStore) Put(key string, val string) error {
+	store.walWriterMu.Lock()
+	defer store.walWriterMu.Unlock()
+
 	keyBytes := []byte(key)
 	valBytes := []byte(val)
 
@@ -62,14 +66,17 @@ func (store *LocalKeyValueStore) Put(key string, val string) error {
 }
 
 func (store *LocalKeyValueStore) put(key string, val string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.dataMu.Lock()
+	defer store.dataMu.Unlock()
 
 	store.data[key] = val
 	return nil
 }
 
 func (store *LocalKeyValueStore) Delete(key string) error {
+	store.walWriterMu.Lock()
+	defer store.walWriterMu.Unlock()
+
 	keyBytes := []byte(key)
 
 	sequenceNumber, err := store.walWriter.Write(&wal.WalEntryWrite{
@@ -90,8 +97,8 @@ func (store *LocalKeyValueStore) Delete(key string) error {
 }
 
 func (store *LocalKeyValueStore) delete(key string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
+	store.dataMu.Lock()
+	defer store.dataMu.Unlock()
 
 	delete(store.data, key)
 	return nil
@@ -120,7 +127,7 @@ func (store *LocalKeyValueStore) ApplyWalEntry(entry *wal.WalEntry) error {
 }
 
 func (store *LocalKeyValueStore) SetWalWriter(walWriter wal.WalWriter) {
-	Store.walWriter = walWriter
+	store.walWriter = walWriter
 }
 
 // Example snapshot
@@ -133,6 +140,9 @@ func (store *LocalKeyValueStore) SetWalWriter(walWriter wal.WalWriter) {
 // [sequenceNumber (8 bytes)][entryCount (8 bytes)][keyLength (4 bytes)][valueLength (4 bytes)][keyBytes (variable)][valueBytes (variable)]...
 
 func (store *LocalKeyValueStore) TakeSnapshot() error {
+	store.walWriterMu.Lock()
+	defer store.walWriterMu.Unlock()
+
 	sequenceNumber, err := store.walWriter.Write(&wal.WalEntryWrite{
 		OpType:      wal.Snapshot,
 		KeyLength:   0,
@@ -151,8 +161,8 @@ func (store *LocalKeyValueStore) TakeSnapshot() error {
 }
 
 func (store *LocalKeyValueStore) takeSnapshot(lastSequenceNumber uint64, path string) error {
-	store.mu.RLock()
-	defer store.mu.RUnlock()
+	store.dataMu.RLock()
+	defer store.dataMu.RUnlock()
 
 	tempFile, err := os.CreateTemp("", "snapshot-*.bin")
 
@@ -320,9 +330,10 @@ type InitializeLocalKeyValueStoreConfig struct {
 func InitializeLocalKeyValueStore(config *InitializeLocalKeyValueStoreConfig) *LocalKeyValueStore {
 
 	Store = &LocalKeyValueStore{
-		mu:                        sync.RWMutex{},
 		data:                      make(map[string]string),
+		dataMu:                    sync.RWMutex{},
 		walWriter:                 config.WalWriter,
+		walWriterMu:               sync.Mutex{},
 		lastAppliedSequenceNumber: 0,
 		cond:                      sync.NewCond(&sync.Mutex{}),
 	}

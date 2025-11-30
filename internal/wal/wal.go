@@ -289,8 +289,6 @@ func (writer *FileWalWriter) Close() error {
 }
 
 func (writer *FileWalWriter) Rotate() error {
-	writer.mu.Lock()
-	defer writer.mu.Unlock()
 
 	// Close the current WAL
 	_, err := writer.Write(&WalEntryWrite{

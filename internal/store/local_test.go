@@ -13,13 +13,15 @@ func TestPut(t *testing.T) {
 	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data: make(map[string]string),
+		data:   make(map[string]string),
+		dataMu: sync.RWMutex{},
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			Directory:      randomWalDirectory,
 			SyncMode:       wal.SyncModeAlways,
 			Index:          0,
 			SequenceNumber: 0,
 		}),
+		walWriterMu:               sync.Mutex{},
 		cond:                      sync.NewCond(&sync.Mutex{}),
 		lastAppliedSequenceNumber: 0,
 	}
@@ -41,13 +43,15 @@ func TestGetShouldReturnNotOkWhenKeyNotFound(t *testing.T) {
 	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data: make(map[string]string),
+		data:   make(map[string]string),
+		dataMu: sync.RWMutex{},
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			Directory:      randomWalDirectory,
 			SyncMode:       wal.SyncModeAlways,
 			Index:          0,
 			SequenceNumber: 0,
 		}),
+		walWriterMu:               sync.Mutex{},
 		cond:                      sync.NewCond(&sync.Mutex{}),
 		lastAppliedSequenceNumber: 0,
 	}
@@ -73,13 +77,15 @@ func TestShouldReturnOkWhenKeyFound(t *testing.T) {
 	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data: make(map[string]string),
+		data:   make(map[string]string),
+		dataMu: sync.RWMutex{},
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			Directory:      randomWalDirectory,
 			SyncMode:       wal.SyncModeAlways,
 			Index:          0,
 			SequenceNumber: 0,
 		}),
+		walWriterMu:               sync.Mutex{},
 		cond:                      sync.NewCond(&sync.Mutex{}),
 		lastAppliedSequenceNumber: 0,
 	}
@@ -111,13 +117,15 @@ func TestShouldDelete(t *testing.T) {
 	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data: make(map[string]string),
+		data:   make(map[string]string),
+		dataMu: sync.RWMutex{},
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			Directory:      randomWalDirectory,
 			SyncMode:       wal.SyncModeAlways,
 			Index:          0,
 			SequenceNumber: 0,
 		}),
+		walWriterMu:               sync.Mutex{},
 		cond:                      sync.NewCond(&sync.Mutex{}),
 		lastAppliedSequenceNumber: 0,
 	}
@@ -165,13 +173,15 @@ func TestShouldTakeSnapshot(t *testing.T) {
 	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data: make(map[string]string),
+		data:   make(map[string]string),
+		dataMu: sync.RWMutex{},
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			Directory:      randomWalDirectory,
 			SyncMode:       wal.SyncModeAlways,
 			Index:          0,
 			SequenceNumber: 0,
 		}),
+		walWriterMu:               sync.Mutex{},
 		cond:                      sync.NewCond(&sync.Mutex{}),
 		lastAppliedSequenceNumber: 0,
 	}
@@ -200,13 +210,15 @@ func TestShouldLoadFromSnapshot(t *testing.T) {
 	randomWalDirectory := "wals_" + uuid.New().String()
 
 	store := &LocalKeyValueStore{
-		data: make(map[string]string),
+		data:   make(map[string]string),
+		dataMu: sync.RWMutex{},
 		walWriter: wal.NewFileWalWriter(&wal.WalWriterConfig{
 			Directory:      randomWalDirectory,
 			SyncMode:       wal.SyncModeAlways,
 			Index:          0,
 			SequenceNumber: 0,
 		}),
+		walWriterMu:               sync.Mutex{},
 		cond:                      sync.NewCond(&sync.Mutex{}),
 		lastAppliedSequenceNumber: 0,
 	}
@@ -231,8 +243,12 @@ func TestShouldLoadFromSnapshot(t *testing.T) {
 	}
 
 	newStore := &LocalKeyValueStore{
-		data:      make(map[string]string),
-		walWriter: wal.NewNoopWalWriter(),
+		data:                      make(map[string]string),
+		dataMu:                    sync.RWMutex{},
+		walWriter:                 wal.NewNoopWalWriter(),
+		walWriterMu:               sync.Mutex{},
+		cond:                      sync.NewCond(&sync.Mutex{}),
+		lastAppliedSequenceNumber: 0,
 	}
 
 	newStore.SubscribeToWalEntries()
