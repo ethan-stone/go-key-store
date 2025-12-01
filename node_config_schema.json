@@ -2,25 +2,60 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "additionalProperties": false,
-  "required": ["node"],
+  "required": ["shard_groups"],
   "properties": {
-    "node": {
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "http_address": { "type": "string", "examples": ["localhost:8080"] },
-        "grpc_address": { "type": "string", "examples": ["localhost:8081"] },
-        "data_dir": { "type": "string", "examples": ["data/node1"] }
-      },
-      "required": ["id", "http_address", "grpc_address", "data_dir"]
-    },
-    "replication": {
-      "type": "object",
-      "properties": {
-        "role": { "type": "string", "enum": ["primary", "replica"] },
-        "replicas": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["role", "replicas"]
+    "shard_groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "hash_slots", "nodes"],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "hash_slots": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "maxItems": 2
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "role",
+                "http_address",
+                "grpc_address",
+                "data_dir"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string",
+                  "enum": ["primary", "replica"]
+                },
+                "http_address": {
+                  "type": "string"
+                },
+                "grpc_address": {
+                  "type": "string"
+                },
+                "data_dir": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
